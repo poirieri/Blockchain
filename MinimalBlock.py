@@ -2,16 +2,12 @@ import copy
 import datetime
 import hashlib
 import json
-import time
 from random import randint
 
 from rsa import PublicKey
 
 import security
-import paho.mqtt.client as mqtt
-from Blockchain.helpers.common_topics import *
-from json import JSONEncoder
-
+from helpers.common_topics import *
 
 # ID = randint(0, 100000)
 #
@@ -30,7 +26,8 @@ from json import JSONEncoder
 # def on_message(client, userdata, msg):
 #     print(msg.topic+" "+str(msg.payload))
 # ## Simple blockchain implementation
-from Blockchain.initialization import configure_client, configureKeys, configure_keys
+from initialization import configure_client, configure_keys, DeviceInfo
+from main import list_devices
 
 
 class Buffer:
@@ -139,23 +136,16 @@ def prepare_json_to_send(data):
     return json.dumps(data_set)
 
 
-class DeviceInfo:
 
-    def __init__(self, id, mac_address, topic, public_key_e, public_key_n):
-        self.id = id
-        self.mac_address = mac_address
-        self.topic = topic
-        self.public_key_e = public_key_e
-        self.public_key_n = public_key_n
 
-def pump_callback(client, userdata, message):
-    tmp_obiect = json.loads(message.payload)
-    list_devices.append(DeviceInfo(tmp_obiect['id'], "client/" + str(tmp_obiect['id']), tmp_obiect['data']['e'], tmp_obiect['data']['n']))
+def public_keys_callback(client, userdata, message):
+    tmp_object = json.loads(message.payload)
+    list_devices.append(DeviceInfo(tmp_object['id'], tmp_object['mac_address'], "client/" + str(tmp_object['id']), tmp_object['public_key_e'], tmp_object['public_key_n']))
 
     # print(message.payload)
-    print(list_devices)
-    find_device(list_devices, tmp_obiect['id'])
-    send_encrypted("data", list_devices[len(list_devices)-1])
+    # print(list_devices)
+    # find_device(list_devices, tmp_obiect['id'])
+    # send_encrypted("data", list_devices[len(list_devices)-1])
 
 def find_device(list_devices, id):
     filter_obj = list(filter(lambda x: x.id == id, list_devices))
@@ -168,41 +158,32 @@ def send_encrypted(data, dev):
     print(device.public_key_n, device.public_key_e)
     print("wysylam wiadomosc do urzadzenia " + str(dev.id))
 
-def decrypt_callback(client, userdata, message):
+def decrypt_callback(client, userdata, keys, message):
     decrypted_message = security.decrypt(message.payload, keys[1])
     print(decrypted_message)
     return decrypted_message
 
-class aBlockEncoder(JSONEncoder):
-
-    def default(self, object):
-
-        if isinstance(object, MinimalBlock):
-
-            return object.__dict__
-
-        else:
-
-            return json.JSONEncoder.default(self, object)
 
 
-if __name__ == '__main__':
-    ID = randint(0, 100000)
-    list_devices = []
-    keys = None
-
-    client = configure_client()
-    keys = configure_keys()
 
 
-    client.message_callback_add(PUB_KEYS_TOPIC, pump_callback)
-    client.message_callback_add(SEND_ENCRYPTED_MESSAGE + str(ID), decrypt_callback)
-
-    testowy_block = MinimalChain
-    a = testowy_block.get_genesis_block(testowy_block)
-
-    json_string = aBlockEncoder().encode(a)
-
-    client.publish(TEST,  payload=json_string)
-
-    client.loop_forever()
+# if __name__ == '__main__':
+#     ID = randint(0, 100000)
+#     list_devices = []
+#     keys = None
+#
+#     client = configure_client()
+#     keys = configure_keys()
+#
+#
+#     client.message_callback_add(PUB_KEYS_TOPIC, public_keys_callback)
+#     client.message_callback_add(SEND_ENCRYPTED_MESSAGE + str(ID), decrypt_callback)
+#
+#     testowy_block = MinimalChain
+#     a = testowy_block.get_genesis_block(testowy_block)
+#
+#     json_string = aBlockEncoder().encode(a)
+#
+#     client.publish(TEST,  payload=json_string)
+#
+#     client.loop_forever()

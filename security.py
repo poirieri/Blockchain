@@ -41,9 +41,9 @@ def verifyMessage(data, signature, pubKey):
         return 0
 
 
-if __name__ == '__main__':
-    pub, priv = generate_keys()
-    msg = encrypt("test", pub)
-    print(msg)
-    msg = decrypt(msg, priv)
-    print(msg)
+# if __name__ == '__main__':
+#     pub, priv = generate_keys()
+#     msg = encrypt("test", pub)
+#     print(msg)
+#     msg = decrypt(msg, priv)
+#     print(msg)
