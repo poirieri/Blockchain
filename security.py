@@ -29,11 +29,14 @@ def decrypt(encryptedData, privKey):
 
 
 def signMessage(data, privKey):
-    hash = rsa.compute_hash(data, 'SHA-1') # generate hash on client machine
-    return rsa.sign(hash, privKey, 'SHA-1') # sign hash with a private key
+    hash = rsa.compute_hash(data.encode('utf8'), 'SHA-1') # generate hash on client machine
+    signed_message = rsa.sign(hash, privKey, 'SHA-1') # sign  # hash with a private key
+    return signed_message
 
 
 def verifyMessage(data, signature, pubKey):
+    # data = data.decode('utf8')
+    # signature = data.decode('utf8')
     try:
         rsa.verify(data, signature, pubKey)
         return 1

@@ -3,7 +3,7 @@ import datetime
 import hashlib
 import json
 from random import randint
-
+import main
 from rsa import PublicKey
 
 import security
@@ -135,9 +135,6 @@ def prepare_json_to_send(data):
     }
     return json.dumps(data_set)
 
-
-
-
 def public_keys_callback(client, userdata, message):
     tmp_object = json.loads(message.payload)
     list_devices.append(DeviceInfo(tmp_object['id'], tmp_object['mac_address'], "client/" + str(tmp_object['id']), tmp_object['public_key_e'], tmp_object['public_key_n']))
@@ -149,7 +146,7 @@ def public_keys_callback(client, userdata, message):
 
 def find_device(list_devices, id):
     filter_obj = list(filter(lambda x: x.id == id, list_devices))
-    return filter_obj[0]
+    return PublicKey(filter_obj[0].public_key_n, filter_obj[0].public_key_e)
 
 def send_encrypted(data, dev):
     device = find_device(list_devices, dev.id)
@@ -158,10 +155,15 @@ def send_encrypted(data, dev):
     print(device.public_key_n, device.public_key_e)
     print("wysylam wiadomosc do urzadzenia " + str(dev.id))
 
-def decrypt_callback(client, userdata, keys, message):
-    decrypted_message = security.decrypt(message.payload, keys[1])
+def decrypt_callback(client, userdata, message):
+    main.temporary_blocks.update({"1" : message.payload})
+    kubus = json.loads(message.payload)
+    decrypted_message = security.verifyMessage(kubus['transactions'].encode('utf8'), bytes(kubus['signature'].encode()), find_device(list_devices, kubus['id']))
     print(decrypted_message)
-    return decrypted_message
+    # decrypted_message = security.decrypt(message.payload, main.keys[1])
+    #
+    # print(decrypted_message)
+    # return decrypted_message
 
 
 

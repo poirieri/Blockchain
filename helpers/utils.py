@@ -26,11 +26,15 @@ def on_message(client, userdata, msg):
 class aBlockEncoder(JSONEncoder):
 
     def default(self, object):
-
         if isinstance(object, initialization.DeviceInfo):
-
             return object.__dict__
 
         else:
+            return json.JSONEncoder.default(self, object)
 
+    def block(self, object):
+        if isinstance(object, initialization.DeviceInfo):
+            return object.__dict__
+
+        else:
             return json.JSONEncoder.default(self, object)
