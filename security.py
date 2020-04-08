@@ -1,4 +1,3 @@
-### Generating keys
 import rsa
 
 
@@ -7,46 +6,34 @@ def generate_keys():
     return pubKey, privKey
 
 
-def import_keys(privkeydir):
+def import_keys(private_key_directory):
+    # import from file
+    # dir: name file .pem
+    with open(private_key_directory, mode='rb') as privatefile:
+        key_data = privatefile.read()
+        private_key = rsa.PrivateKey.load_pkcs1(key_data)
+        return private_key
 
-# import from file
-# dir: name file .pem
-    with open(privkeydir, mode='rb') as privatefile:
-         keydata = privatefile.read()
-         privkey = rsa.PrivateKey.load_pkcs1((keydata))
 
-
-def encrypt(data, pubKey):
-    # return rsa.encrypt(data.encode('utf8'), pub_key)
+def encrypt(data, public_key):
     msg = data.encode('utf8')
-    return rsa.encrypt(msg, pubKey)
+    return rsa.encrypt(msg, public_key)
 
 
-def decrypt(encryptedData, privKey):
-    # return (rsa.decrypt(encryptedData, privKey)).decode('utf8')
-    msg = rsa.decrypt(encryptedData, privKey)
+def decrypt(encrypted_data, private_key):
+    msg = rsa.decrypt(encrypted_data, private_key)
     return msg.decode('utf8')
 
 
-def signMessage(data, privKey):
-    hash = rsa.compute_hash(data.encode('utf8'), 'SHA-1') # generate hash on client machine
-    signed_message = rsa.sign_hash(hash, privKey, 'SHA-1') # sign  # hash with a private key
+def sign_message(data, private_key):
+    hash_value = rsa.compute_hash(data.encode('utf8'), 'SHA-1')  # generate hash on client machine
+    signed_message = rsa.sign_hash(hash_value, private_key, 'SHA-1')  # sign  # hash with a private key
     return signed_message
 
 
-def verifyMessage(data, signature, pubKey):
-    # data = data.decode('utf8')
-    # signature = data.decode('utf8')
+def verify_message(data, signature, public_key):
     try:
-        rsa.verify(data, signature, pubKey)
+        rsa.verify(data, signature, public_key)
         return 1
     except rsa.pkcs1.VerificationError:
         return 0
-
-
-# if __name__ == '__main__':
-#     pub, priv = generate_keys()
-#     msg = encrypt("test", pub)
-#     print(msg)
-#     msg = decrypt(msg, priv)
-#     print(msg)
