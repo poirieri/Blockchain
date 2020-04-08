@@ -32,8 +32,10 @@ class aBlockEncoder(JSONEncoder):
         else:
             return json.JSONEncoder.default(self, object)
 
-    def block(self, object):
-        if isinstance(object, initialization.DeviceInfo):
+class bBlockEncoder(JSONEncoder):
+
+    def default(self, object):
+        if isinstance(object, initialization.Block):
             return object.__dict__
 
         else:

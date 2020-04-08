@@ -15,6 +15,6 @@ if __name__ == '__main__':
     device_info = prepare_device_info(keys)
     send_keys(client, device_info)
     asyncio.run(gather_transactions.gather_transactions(client))
-    block = gather_transactions.prepare_device_block(keys[1])
+    block = gather_transactions.prepare_device_block(keys[1], keys[0])
     send_block(client, block)
     client.loop_forever()

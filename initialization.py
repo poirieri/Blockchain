@@ -20,6 +20,12 @@ class DeviceInfo():
         self.public_key_e = public_key_e
         self.public_key_n = public_key_n
 
+class Block():
+    def __init__(self, id, signature, transactions):
+        self.id = id
+        self.signature = signature
+        self.transactions = transactions
+
 def configure_client():
 
     client = mqtt.Client()

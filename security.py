@@ -30,7 +30,7 @@ def decrypt(encryptedData, privKey):
 
 def signMessage(data, privKey):
     hash = rsa.compute_hash(data.encode('utf8'), 'SHA-1') # generate hash on client machine
-    signed_message = rsa.sign(hash, privKey, 'SHA-1') # sign  # hash with a private key
+    signed_message = rsa.sign_hash(hash, privKey, 'SHA-1') # sign  # hash with a private key
     return signed_message
 
 

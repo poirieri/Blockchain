@@ -3,6 +3,9 @@ import datetime
 import hashlib
 import json
 from random import randint
+
+import bson
+
 import main
 from rsa import PublicKey
 
@@ -157,8 +160,8 @@ def send_encrypted(data, dev):
 
 def decrypt_callback(client, userdata, message):
     main.temporary_blocks.update({"1" : message.payload})
-    kubus = json.loads(message.payload)
-    decrypted_message = security.verifyMessage(kubus['transactions'].encode('utf8'), bytes(kubus['signature'].encode()), find_device(list_devices, kubus['id']))
+    kubus = bson.loads(message.payload)
+    decrypted_message = security.verifyMessage(kubus['transactions'].encode(), kubus['signature'], find_device(list_devices, kubus['id']))
     print(decrypted_message)
     # decrypted_message = security.decrypt(message.payload, main.keys[1])
     #
