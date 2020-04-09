@@ -32,12 +32,12 @@ class MinimalBlock:
 
 class MinimalChain:
     def __init__(self):  # initialize when creating a chain
-        self.blocks = [self.get_genesis_block()]
+        self.blocks = []
 
-    def get_genesis_block(self):
+    def get_genesis_block(self, transactions):
         return MinimalBlock(0,
                             str(datetime.datetime.utcnow()),
-                            "DATA",
+                            transactions,
                             'arbitrary')
 
     def add_block(self, data):

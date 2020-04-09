@@ -1,7 +1,7 @@
 import json
 import bson
 from rsa import PublicKey
-
+import MinimalBlock
 import initialization
 import main
 import security
@@ -34,6 +34,9 @@ def find_device(list_devices, id_device):
     filter_obj = list(filter(lambda x: x.id == id_device, list_devices))
     return PublicKey(filter_obj[0].public_key_n, filter_obj[0].public_key_e)
 
+def find_mac_address(list_devices, id_device):
+    filter_obj = list(filter(lambda x: x.id == id_device, list_devices))
+    return filter_obj[0].mac_address
 
 def send_encrypted(data, dev):
     device = find_device(main.list_devices, dev.id)
@@ -44,8 +47,21 @@ def send_encrypted(data, dev):
 
 
 def decrypt_callback(client, userdata, message):
-    main.temporary_blocks.update({"1": message.payload})
     kubus = bson.loads(message.payload)
-    decrypted_message = security.verify_message(kubus['transactions'].encode(), kubus['signature'],
-                                                find_device(main.list_devices, kubus['id']))
-    print(decrypted_message)
+    decrypted_message_verification = security.verify_message(kubus['transactions'].encode(), kubus['signature'],
+                                                             find_device(main.list_devices, kubus['id']))
+
+    if find_mac_address(main.list_devices, kubus['id']) == kubus['mac'] and decrypted_message_verification == 1:
+        print("verified " + str(decrypted_message_verification))
+        main.temporary_blocks.append(kubus)
+        if main.temporary_blocks.__len__() == 5:
+            print("5 transakcji gotowe")
+            if main.block_chain.blocks.__len__() == 0:
+                main.block_chain = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, main.temporary_blocks)
+                main.block_chain.blocks = [MinimalBlock.MinimalChain.get_genesis_block(main.block_chain,
+                                                                                  main.temporary_blocks)]
+            else:
+                MinimalBlock.MinimalChain.add_block(main.block_chain, main.temporary_blocks)
+            main.temporary_blocks.clear()
+
+

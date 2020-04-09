@@ -2,12 +2,15 @@ import asyncio
 from random import randint
 import gather_transactions
 import initialization
+import MinimalBlock
 
 list_devices = []
 ID = randint(0, 100000)
 transactions = []
 keys = None
-temporary_blocks = {}
+temporary_blocks = []
+block_chain = MinimalBlock.MinimalChain()
+
 if __name__ == '__main__':
     client = initialization.configure_client()
     keys = initialization.configure_keys(keys)
