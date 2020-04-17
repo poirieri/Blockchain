@@ -1,12 +1,14 @@
 import json
 import uuid
+
+import bson
 import paho.mqtt.client as mqtt
 import callbacks
 import security
 import helpers.utils
 from helpers.common_topics import SEND_ENCRYPTED_MESSAGE, PUB_KEYS_TOPIC
 import main
-
+from bson import BSON
 
 class DeviceInfo:
     def __init__(self, id_device, mac_address, topic, public_key_e, public_key_n):
@@ -32,16 +34,20 @@ def configure_client():
     client.subscribe(helpers.utils.PUB_KEYS_TOPIC)
     client.subscribe(SEND_ENCRYPTED_MESSAGE + str(main.ID))
     client.subscribe(SEND_ENCRYPTED_MESSAGE)
+    client.subscribe(helpers.utils.TRUST_RATE)
+    client.subscribe(helpers.utils.NEW_BLOCK)
+    client.message_callback_add(helpers.utils.NEW_BLOCK, callbacks.add_new_block)
+    client.message_callback_add(helpers.utils.TRUST_RATE, callbacks.add_trust_rate)
     client.message_callback_add(PUB_KEYS_TOPIC, callbacks.public_keys_callback)
     client.message_callback_add(SEND_ENCRYPTED_MESSAGE + str(main.ID), callbacks.decrypt_callback)
     client.message_callback_add(SEND_ENCRYPTED_MESSAGE, callbacks.decrypt_callback)
+    verify_master_rights(client, main.trust_rate)
     return client
 
 
-def configure_keys(keys):
-    if keys is None:
-        keys = security.generate_keys()
-        return keys
+def configure_keys():
+    keys = security.generate_keys()
+    return keys
 
 
 def prepare_json_to_send(data, id_device):
@@ -70,8 +76,20 @@ def send_keys(client, device_info):
         print(ConnectionError)
 
 
+def send_trust_rate(client, trust_rate):
+    client.publish(helpers.utils.TRUST_RATE, bson.encode({str(main.ID): trust_rate}))
+
 def send_block(client, block):
     try:
         client.publish(helpers.utils.SEND_ENCRYPTED_MESSAGE, block)
     except ConnectionError:
         print(ConnectionError)
+
+
+def verify_master_rights(client, trust_value):
+    if trust_value >= 10:
+        client.subscribe(helpers.utils.CHECK_BLOCK)
+        client.message_callback_add(helpers.utils.CHECK_BLOCK, callbacks.choose_trusted_device)
+    else:
+        client.unsubscribe(helpers.utils.CHECK_BLOCK)
+        client.message_callback_remove(helpers.utils.CHECK_BLOCK)

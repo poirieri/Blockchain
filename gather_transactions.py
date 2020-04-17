@@ -4,6 +4,7 @@ import uuid
 import bson
 import main
 import security
+from bson import BSON
 
 
 async def transaction():
@@ -25,4 +26,4 @@ def prepare_device_block(private_key):
         "signature": signature,
         "transactions": list_to_str
         }
-    return bson.dumps(data_set)
+    return BSON.encode(data_set)

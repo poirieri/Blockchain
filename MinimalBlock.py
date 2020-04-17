@@ -21,6 +21,7 @@ class MinimalBlock:
         self.previous_hash = previous_hash
         self.hash = self.hashing()
 
+
     def hashing(self):
         key = hashlib.sha256()
         key.update(str(self.index).encode('utf-8'))
@@ -35,6 +36,12 @@ class MinimalChain:
         self.blocks = []
 
     def get_genesis_block(self, transactions):
+        # {'index': self.index,
+        #  'timestamp': self.timestamp,
+        #  'data': self.data,
+        #  'previous hash': self.previous_hash,
+        #  'hash': self.hash
+        #  }
         return MinimalBlock(0,
                             str(datetime.datetime.utcnow()),
                             transactions,
