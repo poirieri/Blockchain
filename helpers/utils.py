@@ -1,30 +1,31 @@
-import json
-from json import JSONEncoder
-
+import callbacks
 from helpers.common_topics import *
-import initialization
-
+import main
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    client.subscribe("test")
-    client.subscribe(TEST)
-    client.subscribe(PUB_KEYS_TOPIC)
-    client.subscribe(SEND_ENCRYPTED_MESSAGE)
+    print("Connected with result code "+str(rc))
+    subscribe_topics(client)
+    add_callbacks(client)
 
 
-# The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
+    # The callback for when a PUBLISH message is received from the server.
     print(msg.topic+" "+str(msg.payload))
 
 
-class DeviceBlockEncoder(JSONEncoder):
+def subscribe_topics(client):
+    client.subscribe(PUB_KEYS_TOPIC)
+    client.subscribe(SEND_ENCRYPTED_MESSAGE + str(main.ID))
+    client.subscribe(SEND_ENCRYPTED_MESSAGE)
+    client.subscribe(TRUST_RATE)
+    client.subscribe(NEW_BLOCK)
 
-    def default(self, o):
-        if isinstance(o, initialization.DeviceInfo):
-            return o.__dict__
 
-        else:
-            return json.JSONEncoder.default(self, o)
+def add_callbacks(client):
+    client.message_callback_add(NEW_BLOCK, callbacks.add_new_block)
+    client.message_callback_add(TRUST_RATE, callbacks.add_trust_rate)
+    client.message_callback_add(callbacks.public_keys_callback)
+    client.message_callback_add(SEND_ENCRYPTED_MESSAGE + str(main.ID), callbacks.decrypt_callback)
+    client.message_callback_add(SEND_ENCRYPTED_MESSAGE, callbacks.decrypt_callback)

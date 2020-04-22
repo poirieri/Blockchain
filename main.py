@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import uuid
 from random import randint
 import gather_transactions
 import initialization
@@ -14,15 +15,15 @@ block_chain = MinimalBlock.MinimalChain()
 trusted_devices = {}
 trust_rate = int(sys.argv[1])
 isMiner = bool(sys.argv[2])
-newblock = []
+newblock = dict()
+mac_address = hex(uuid.getnode())
 
 
 def main():
     client = initialization.configure_client()
     keys = initialization.configure_keys()
-    device_info = initialization.prepare_device_info(keys)
-    initialization.send_keys(client, device_info)
-    initialization.send_trust_rate(client, trust_rate)
+    initialization.send_device_info(client, keys, ID, mac_address)
+
     asyncio.run(gather_transactions.gather_transactions(client))
     block = gather_transactions.prepare_device_block(keys[1])
     initialization.send_block(client, block)

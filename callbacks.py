@@ -7,22 +7,11 @@ import initialization
 import main
 import security
 from helpers.common_topics import SEND_ENCRYPTED_MESSAGE, MAXIMUM_BLOCK_SIZE
-import helpers.size_counter
 from bson import BSON
+import helpers.utils
 
 def add_key_to_keystore(client, userdata, message):
     message.payload
-
-
-def prepare_json_to_send(data):
-    data_set = {
-        "id": initialization.ID,
-        "data": {
-            "e": data[0].e,
-            "n": data[0].n
-        }
-    }
-    return json.dumps(data_set)
 
 
 def public_keys_callback(client, userdata, message):
@@ -53,22 +42,22 @@ def decrypt_callback(client, userdata, message):
     main.temporary_blocks.append(kubus)
     if main.temporary_blocks.__len__() == 2:
         if main.isMiner:
+            iterator = 0
             for i in main.temporary_blocks:
                 try:
                     decrypted_message_verification = security.verify_message(i['transactions'].encode(),
                                                                              i['signature'],
                                                                              find_device(main.list_devices, i['id']))
                     if find_mac_address(main.list_devices, i['id']) == i['mac'] and decrypted_message_verification == 1:
-                        main.newblock.append(i)
+                        main.newblock.update({str(iterator) : i})
+                        iterator = iterator + 1
                 except ValueError:
                     print("Some error")
-            main.block_chain.blocks = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, main.newblock)
-
-            client.publish(helpers.utils.NEW_BLOCK, BSON.encode(main.block_chain.blocks.__dict__))
+            # main.block_chain.blocks = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, main.newblock)
+            # client.publish(helpers.utils.NEW_BLOCK, BSON.encode(main.block_chain.blocks.__dict__))
+#TODO send object list and receive it
+            client.publish(helpers.utils.NEW_BLOCK, BSON.encode(main.newblock))
             main.temporary_blocks.clear()
-
-
-        # choose_trusted_device(client)
 
     # decrypted_message_verification = security.verify_message(kubus['transactions'].encode(), kubus['signature'],
     #                                                          find_device(main.list_devices, kubus['id']))
@@ -77,7 +66,6 @@ def decrypt_callback(client, userdata, message):
     #     print("verified " + str(decrypted_message_verification))
     #     client.publish()
     #     main.temporary_blocks.append(kubus)
-    #     print(helpers.size_counter.total_size(main.block_chain.blocks, verbose=True))
     #     if main.temporary_blocks.__len__() == 5:
     #         print("5 transakcji gotowe")
     #         if main.block_chain.blocks.__len__() == 0:
@@ -95,10 +83,28 @@ def choose_trusted_device(client, userdata, message):
 
 
 def add_trust_rate(client, userdata, message):
-    temp = BSON.decode(message.payload)
+    temp = json.loads(message.payload)
     main.trusted_devices.update(temp)
 
 def add_new_block(client, userdata, message):
-    print(BSON.decode(message.payload))
-    db = dbconf.dbconnect()
-    rec_id1 = db.insert_one(BSON.decode(message.payload))
+    received_block = BSON.decode(message.payload)
+    if main.block_chain.blocks.__len__() == 0:
+        main.block_chain = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, received_block)
+        computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain,
+                                                                          received_block)
+    else:
+        computed_block = MinimalBlock.MinimalChain.add_block(main.block_chain, received_block)
+
+
+    db = dbconf.dbconnect(main.ID)
+    copy_object = {
+        'index': computed_block.index,
+        'timestamp': computed_block.timestamp,
+         'data': list(computed_block.data.values()),
+         'previous hash': computed_block.previous_hash,
+         'hash': computed_block.hash
+         }
+
+    rec_id1 = db.insert_one(copy_object)
+    computed_block.clear()
+

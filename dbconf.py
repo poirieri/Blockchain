@@ -2,7 +2,7 @@
 # inserting data in MongoDB
 from pymongo import MongoClient
 
-def dbconnect():
+def dbconnect(name):
     try:
         conn = MongoClient()
         print("Connected successfully!!!")
@@ -13,7 +13,7 @@ def dbconnect():
     db = conn.database
 
     # Created or Switched to collection names: my_gfg_collection
-    collection = db.my_gfg_collection
+    collection = db.blockchain
     return collection
 
 emp_rec1 = {
