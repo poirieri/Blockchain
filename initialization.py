@@ -22,7 +22,6 @@ def configure_client():
     client.on_connect = helpers.utils.on_connect
     client.on_message = helpers.utils.on_message
     client.connect("localhost", 1883, 60)
-    verify_master_rights(client, main.trust_rate)
     return client
 
 
@@ -32,22 +31,22 @@ def configure_keys():
 
 
 def prepare_device_info(keys, ID, mac_address):
-    topic = "client/" + str(main.ID)
-    device_info = DeviceInfo(main.ID, mac_address, topic, keys[0]['e'], keys[0]['n'])
+    topic = "client/" + str(main.id_device)
+    device_info = DeviceInfo(main.id_device, mac_address, topic, keys[0]['e'], keys[0]['n'])
     return device_info
 
 
-def send_device_info(client, keys, id, mac_address):
+def send_device_info(client, keys, device_id, mac_address, trust_rate):
     try:
-        json_string = json.dumps(prepare_device_info(keys, id, mac_address).__dict__)
+        json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
         client.publish(helpers.utils.PUB_KEYS_TOPIC, json_string)
-        send_trust_rate(client, main.trust_rate)
+        send_trust_rate(client, device_id, trust_rate)
     except ConnectionError:
         print(ConnectionError)
 
 
-def send_trust_rate(client, trust_rate):
-    client.publish(helpers.utils.TRUST_RATE, json.dumps({str(main.ID): trust_rate}))
+def send_trust_rate(client, device_id,  trust_rate):
+    client.publish(helpers.utils.TRUST_RATE, json.dumps({str(device_id): trust_rate}))
 
 
 def send_block(client, block):
@@ -57,10 +56,4 @@ def send_block(client, block):
         print(ConnectionError)
 
 
-def verify_master_rights(client, trust_value):
-    if trust_value >= 10:
-        client.subscribe(helpers.utils.CHECK_BLOCK)
-        client.message_callback_add(helpers.utils.CHECK_BLOCK, callbacks.choose_trusted_device)
-    else:
-        client.unsubscribe(helpers.utils.CHECK_BLOCK)
-        client.message_callback_remove(helpers.utils.CHECK_BLOCK)
+

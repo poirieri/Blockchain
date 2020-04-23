@@ -17,7 +17,7 @@ def on_message(client, userdata, msg):
 
 def subscribe_topics(client):
     client.subscribe(PUB_KEYS_TOPIC)
-    client.subscribe(SEND_ENCRYPTED_MESSAGE + str(main.ID))
+    client.subscribe(SEND_ENCRYPTED_MESSAGE + str(main.id_device))
     client.subscribe(SEND_ENCRYPTED_MESSAGE)
     client.subscribe(TRUST_RATE)
     client.subscribe(NEW_BLOCK)
@@ -25,7 +25,7 @@ def subscribe_topics(client):
 
 def add_callbacks(client):
     client.message_callback_add(NEW_BLOCK, callbacks.add_new_block)
-    client.message_callback_add(TRUST_RATE, callbacks.add_trust_rate)
-    client.message_callback_add(callbacks.public_keys_callback)
-    client.message_callback_add(SEND_ENCRYPTED_MESSAGE + str(main.ID), callbacks.decrypt_callback)
+    client.message_callback_add(TRUST_RATE, callbacks.add_trust_rate_to_store)
+    client.message_callback_add(callbacks.add_device_info_to_store)
+    client.message_callback_add(SEND_ENCRYPTED_MESSAGE + str(main.id_device), callbacks.decrypt_callback)
     client.message_callback_add(SEND_ENCRYPTED_MESSAGE, callbacks.decrypt_callback)
