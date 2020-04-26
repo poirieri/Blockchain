@@ -34,6 +34,6 @@ def sign_message(data, private_key):
 def verify_message(data, signature, public_key):
     try:
         rsa.verify(data, signature, public_key)
-        return 1
+        return True
     except rsa.pkcs1.VerificationError:
-        return 0
+        return False

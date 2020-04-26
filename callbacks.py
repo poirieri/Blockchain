@@ -1,4 +1,6 @@
 import json
+import random
+
 from rsa import PublicKey
 import MinimalBlock
 import dbconf
@@ -31,32 +33,35 @@ def find_mac_address(list_devices, id_device):
     return filter_obj[0].mac_address
 
 
-def decrypt_callback(client, userdata, message):
+def receive_encrypted_block(client, userdata, message):
     kubus = BSON.decode(message.payload)
     main.temporary_blocks.append(kubus)
-    if main.temporary_blocks.__len__() == 2:
-        if main.isMiner:
-            iterator = 0
-            for i in main.temporary_blocks:
-                try:
-                    decrypted_message_verification = security.verify_message(i['transactions'].encode(),
-                                                                             i['signature'],
-                                                                             find_device(main.list_devices, i['id']))
-                    if find_mac_address(main.list_devices, i['id']) == i['mac'] and decrypted_message_verification == 1:
-                        main.newblock.update({str(iterator) : i})
-                        iterator = iterator + 1
-                except ValueError:
-                    print("Some error")
-            # main.block_chain.blocks = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, main.newblock)
-            # client.publish(helpers.utils.NEW_BLOCK, BSON.encode(main.block_chain.blocks.__dict__))
-#TODO send object list and receive it
-            client.publish(helpers.utils.NEW_BLOCK, BSON.encode(main.newblock))
-            main.temporary_blocks.clear()
+    if main.temporary_blocks.__len__() == 2 and main.isMiner:
+        validate_blocks(client, main.temporary_blocks)
+        main.temporary_blocks.clear()
+        choose_new_miner(client)
 
 
-def choose_trusted_device(client, userdata, message):
-    filter(main.trusted_devices)
-    client.publish(helpers.utils.CHECK_BLOCK, )
+def validate_blocks(client, validated_blocks):
+    iterator = 0
+    new_block = dict()
+    for i in validated_blocks:
+        decrypted_message_verification = security.verify_message(i['transactions'].encode(),
+                                                                 i['signature'],
+                                                                 find_device(main.list_devices, i['id']))
+        if find_mac_address(main.list_devices, i['id']) == i['mac'] and decrypted_message_verification:
+            new_block.update({str(iterator): i})
+            iterator += 1
+            client.publish(helpers.utils.CORRECT_VALIDATION, i['id'])
+        else:
+            client.publish(helpers.utils.FALSE_VALIDATION, i['id'])
+            print("fake block")
+            return
+    client.publish(helpers.utils.NEW_BLOCK, BSON.encode(new_block))
+
+# def choose_trusted_device(client, userdata, message):
+#     filter(main.trusted_devices)
+#     client.publish(helpers.utils.CHECK_BLOCK, )
 
 
 def add_new_block(client, userdata, message):
@@ -67,8 +72,11 @@ def add_new_block(client, userdata, message):
                                                                           received_block)
     else:
         computed_block = MinimalBlock.MinimalChain.add_block(main.block_chain, received_block)
+    add_to_db(computed_block)
+    del computed_block
 
 
+def add_to_db(computed_block):
     db = dbconf.connect_to_db()
     copy_object = {
         'index': computed_block.index,
@@ -77,7 +85,31 @@ def add_new_block(client, userdata, message):
          'previous hash': computed_block.previous_hash,
          'hash': computed_block.hash
          }
+    db.insert_one(copy_object)
 
-    rec_id1 = db.insert_one(copy_object)
-    computed_block.clear()
 
+def add_trust_value(client, userdata, message):
+    id_dev = str(message.payload, "UTF-8")
+    trust_value = main.trusted_devices.get(id_dev)
+    main.trusted_devices.update({str(id_dev): str(trust_value + 1)})
+
+
+def decrement_trust_value(client, userdata, message):
+    id_dev = str(message.payload, "UTF-8")
+    trust_value = main.trusted_devices.get(id_dev)
+    main.trusted_devices.update({str(id_dev): str(trust_value - 2)})
+
+
+def choose_new_miner(client):
+    could_be_miner = dict(filter(lambda elem: (elem[1]) > 4, main.trusted_devices.items()))
+    print(could_be_miner)
+    new_miner = random.choice(list(could_be_miner.keys()))
+    client.publish(helpers.utils.CHOOSE_MINER, new_miner)
+
+
+def new_miner(client, userdata, message):
+    if str(message.payload, "UTF-8") == main.id_device:
+        main.isMiner = True
+    else:
+        main.isMiner = False
+#TODO reassure that everyone has the same device list and trustrate list

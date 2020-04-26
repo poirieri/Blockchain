@@ -30,16 +30,18 @@ def configure_keys():
     return keys
 
 
-def prepare_device_info(keys, ID, mac_address):
-    topic = "client/" + str(main.id_device)
-    device_info = DeviceInfo(main.id_device, mac_address, topic, keys[0]['e'], keys[0]['n'])
+def prepare_device_info(keys, id_device, mac_address):
+    topic = "client/" + str(id_device)
+    device_info = DeviceInfo(id_device, mac_address, topic, keys[0]['e'], keys[0]['n'])
     return device_info
 
 
 def send_device_info(client, keys, device_id, mac_address, trust_rate):
     try:
         json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
+        main.list_devices.append(prepare_device_info(keys, device_id, mac_address))
         client.publish(helpers.utils.PUB_KEYS_TOPIC, json_string)
+        main.trusted_devices.update({device_id: trust_rate})
         send_trust_rate(client, device_id, trust_rate)
     except ConnectionError:
         print(ConnectionError)

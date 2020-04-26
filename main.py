@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 import uuid
 from random import randint
 import data_collector
@@ -15,7 +16,6 @@ block_chain = MinimalBlock.MinimalChain()
 trusted_devices = {}
 trust_rate = int(sys.argv[1])
 isMiner = bool(sys.argv[2])
-newblock = dict()
 mac_address = hex(uuid.getnode())
 
 
