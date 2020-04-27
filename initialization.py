@@ -17,8 +17,9 @@ class DeviceInfo:
         self.public_key_n = public_key_n
 
 
-def configure_client():
+def configure_client(id_device):
     client = mqtt.Client()
+    client.user_data_set({"id_device": id_device})
     client.on_connect = helpers.utils.on_connect
     client.on_message = helpers.utils.on_message
     client.connect("localhost", 1883, 60)
@@ -40,15 +41,16 @@ def send_device_info(client, keys, device_id, mac_address, trust_rate):
     try:
         json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
         main.list_devices.append(prepare_device_info(keys, device_id, mac_address))
-        client.publish(helpers.utils.PUB_KEYS_TOPIC, json_string)
+        client.publish(helpers.utils.NEW_DEVICE, json_string)
         main.trusted_devices.update({device_id: trust_rate})
+        print("device id", device_id)
         send_trust_rate(client, device_id, trust_rate)
     except ConnectionError:
         print(ConnectionError)
 
 
 def send_trust_rate(client, device_id,  trust_rate):
-    client.publish(helpers.utils.TRUST_RATE, json.dumps({str(device_id): trust_rate}))
+    client.publish(helpers.utils.NEW_DEVICE_TRUST_RATE, json.dumps({str(device_id): trust_rate}))
 
 
 def send_block(client, block):

@@ -1,6 +1,5 @@
 import callbacks
 from helpers.common_topics import *
-import main
 
 def on_connect(client, userdata, flags, rc):
     # Subscribing in on_connect() means that if we lose the connection and
@@ -23,6 +22,8 @@ def subscribe_topics(client):
     client.subscribe(CORRECT_VALIDATION)
     client.subscribe(NEW_BLOCK)
     client.subscribe(CHOOSE_MINER)
+    client.subscribe(NEW_DEVICE)
+    client.subscribe(NEW_DEVICE_TRUST_RATE)
 
 
 
@@ -33,4 +34,5 @@ def add_callbacks(client):
     client.message_callback_add(SEND_ENCRYPTED_MESSAGE, callbacks.receive_encrypted_block)
     client.message_callback_add(CORRECT_VALIDATION, callbacks.add_trust_value)
     client.message_callback_add(FALSE_VALIDATION, callbacks.decrement_trust_value)
-    client.message_callback_add(CHOOSE_MINER, callbacks.is_miner)
+    client.message_callback_add(NEW_DEVICE, callbacks.resend_device_info)
+    client.message_callback_add(NEW_DEVICE_TRUST_RATE, callbacks.resend_trust_rate)

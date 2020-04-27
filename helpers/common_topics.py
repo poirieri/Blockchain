@@ -5,6 +5,8 @@ SYS_BROKER_NUMBER_CLIENTS_CONNECTED = "$SYS/broker/clients/total"
 
 TEST = "test"
 PUB_KEYS_TOPIC = "PubKeys"
+NEW_DEVICE = "client/PubKeys"
+NEW_DEVICE_TRUST_RATE = "client/trustvalue/new"
 SEND_MESSAGE_TOPIC = "client/receive/#"
 SEND_ENCRYPTED_MESSAGE = "client/encrypted/receive/"
 MAXIMUM_BLOCK_SIZE = 35
