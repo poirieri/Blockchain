@@ -21,12 +21,11 @@ global id_device
 
 
 def main():
-    id_device = randint(0, 100000)
-    client = initialization.configure_client(id_device)
+    id_device = str(randint(0, 100000))
     keys = initialization.configure_keys()
+    client = initialization.configure_client(id_device, isMiner, mac_address, keys)
     initialization.send_device_info(client, keys, id_device, mac_address, trust_rate)
     data_collector.prepare_device_block(client, keys[1], id_device, mac_address)
-    print(id_device)
     client.loop_forever()
 
 if __name__ == '__main__':

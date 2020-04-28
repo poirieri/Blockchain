@@ -1,6 +1,6 @@
+import datetime
 import json
 import random
-
 from rsa import PublicKey
 import MinimalBlock
 import dbconf
@@ -8,8 +8,11 @@ import initialization
 import security
 from bson import BSON
 import helpers.utils
-from main import list_devices, trusted_devices, temporary_blocks, isMiner
-from main import block_chain
+from main import list_devices, trusted_devices, temporary_blocks
+import main
+import data_collector
+MAX_BLOCKS = 1
+
 
 def add_device_info_to_store(client, userdata, message):
     tmp_object = json.loads(message.payload)
@@ -36,10 +39,10 @@ def find_mac_address(list_devices, id_device):
 def receive_encrypted_block(client, userdata, message):
     kubus = BSON.decode(message.payload)
     temporary_blocks.append(kubus)
-    if temporary_blocks.__len__() == 2 and isMiner:
+    if temporary_blocks.__len__() == MAX_BLOCKS and userdata.get("isMiner") is True:
         validate_blocks(client, temporary_blocks)
         temporary_blocks.clear()
-        choose_new_miner(client)
+        choose_new_miner(client, userdata)
 
 
 def validate_blocks(client, validated_blocks):
@@ -59,15 +62,16 @@ def validate_blocks(client, validated_blocks):
             return
     client.publish(helpers.utils.NEW_BLOCK, BSON.encode(new_block))
 
+#TODO fix timestamp!
 
 def add_new_block(client, userdata, message):
     received_block = BSON.decode(message.payload)
-    if block_chain.blocks.__len__() == 0:
-        block_chain = MinimalBlock.MinimalChain.get_genesis_block(block_chain, received_block)
-        computed_block = MinimalBlock.MinimalChain.get_genesis_block(block_chain,
-                                                                          received_block)
+    if main.block_chain.blocks.__len__() == 0:
+        computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, str(datetime.datetime.utcnow()), received_block)
+        # computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain,
+        #                                                             received_block)
     else:
-        computed_block = MinimalBlock.MinimalChain.add_block(block_chain, received_block)
+         computed_block = MinimalBlock.MinimalChain.add_block(main.block_chain, received_block)
     add_to_db(computed_block)
     del computed_block
 
@@ -77,38 +81,40 @@ def add_to_db(computed_block):
     copy_object = {
         'index': computed_block.index,
         'timestamp': computed_block.timestamp,
-         'data': list(computed_block.data.values()),
-         'previous hash': computed_block.previous_hash,
-         'hash': computed_block.hash
-         }
+        'data': list(computed_block.data.values()),
+        'previous hash': computed_block.previous_hash,
+        'hash': computed_block.hash
+    }
     db.insert_one(copy_object)
 
 
 def add_trust_value(client, userdata, message):
     id_dev = str(message.payload, "UTF-8")
-    trust_value = trusted_devices.get(id_dev)
-    trusted_devices.update({str(id_dev): str(trust_value + 1)})
+    trust_value = trusted_devices.get(id_dev) + 1
+    trusted_devices.update({id_dev: trust_value})
 
 
 def decrement_trust_value(client, userdata, message):
     id_dev = str(message.payload, "UTF-8")
-    trust_value = trusted_devices.get(id_dev)
-    trusted_devices.update({str(id_dev): str(trust_value - 2)})
+    trust_value = trusted_devices.get(id_dev) - 2
+    trusted_devices.update({id_dev: trust_value})
 
 
-def choose_new_miner(client):
-    could_be_miner = dict(filter(lambda elem: (elem[1]) > 4, trusted_devices.items()))
+def choose_new_miner(client, userdata):
+    #TODO check if not null!
+    could_be_miner = dict(filter(lambda elem: int(elem[0]) > 10, trusted_devices.items()))
     print(could_be_miner)
     new_miner = random.choice(list(could_be_miner.keys()))
     client.publish(helpers.utils.CHOOSE_MINER, new_miner)
+    # data_collector.prepare_device_block(client, userdata.get("priv_key"), userdata.get("id_device"), userdata.get("mac_address"))
 
 
 def new_miner(client, userdata, message):
     if str(message.payload, "UTF-8") == userdata.get("id_device"):
-        isMiner = True
+        client.user_data_set({"isMiner": True})
     else:
-        isMiner = False
-#TODO reassure that everyone has the same device list and trustrate list
+        client.user_data_set({"isMiner": False})
+
 
 def resend_device_info(client, userdata, message):
     tmp_object = json.loads(message.payload)
@@ -116,11 +122,10 @@ def resend_device_info(client, userdata, message):
         initialization.DeviceInfo(tmp_object['id'], tmp_object['mac_address'], "client/" + str(tmp_object['id']),
                                   tmp_object['public_key_e'], tmp_object['public_key_n']))
     client.publish(helpers.utils.PUB_KEYS_TOPIC, json.dumps(list_devices[0].__dict__))
-    print("list", list_devices)
+
 
 def resend_trust_rate(client, userdata, message):
     temp = json.loads(message.payload)
     trusted_devices.update(temp)
-    print("tr", trusted_devices)
     client.publish(helpers.utils.TRUST_RATE,
-                   json.dumps({userdata.get("id_device"): trusted_devices.get(userdata.get("id_device"))}))
+                   json.dumps({userdata.get("id_device"): int(trusted_devices.get(userdata.get("id_device")))}))

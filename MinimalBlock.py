@@ -34,9 +34,9 @@ class MinimalChain:
     def __init__(self):  # initialize when creating a chain
         self.blocks = []
 
-    def get_genesis_block(self, transactions):
+    def get_genesis_block(self, time, transactions):
         return MinimalBlock(0,
-                            str(datetime.datetime.utcnow()),
+                            time,
                             transactions,
                             'arbitrary')
 
