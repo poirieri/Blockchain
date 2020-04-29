@@ -11,10 +11,10 @@ In order to run this project you need to download Mosquitto broker implementatio
 Python 3.8
 
 ### Packages:
-paho-mqtt	1.5.0	1.5.0
-pip	19.0.3	20.1
-pymongo	3.10.1	3.10.1
-rsa	4.0	4.0
+* paho-mqtt	1.5.0	1.5.0
+* pip	19.0.3	20.1
+* pymongo	3.10.1	3.10.1
+* rsa	4.0	4.0
 
 ## Run command
 ```
