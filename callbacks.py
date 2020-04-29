@@ -1,6 +1,8 @@
 import datetime
 import json
 import random
+from time import sleep
+
 from rsa import PublicKey
 import MinimalBlock
 import dbconf
@@ -11,7 +13,7 @@ import helpers.utils
 from main import list_devices, trusted_devices, temporary_blocks
 import main
 import data_collector
-MAX_BLOCKS = 1
+MAX_BLOCKS = 3
 
 
 def add_device_info_to_store(client, userdata, message):
@@ -39,7 +41,7 @@ def find_mac_address(list_devices, id_device):
 def receive_encrypted_block(client, userdata, message):
     kubus = BSON.decode(message.payload)
     temporary_blocks.append(kubus)
-    if temporary_blocks.__len__() == MAX_BLOCKS and userdata.get("isMiner") is True:
+    if temporary_blocks.__len__() == MAX_BLOCKS and main.is_miner is True:
         validate_blocks(client, temporary_blocks)
         temporary_blocks.clear()
         choose_new_miner(client, userdata)
@@ -73,8 +75,11 @@ def add_new_block(client, userdata, message):
     else:
         main.block_chain.add_block(timestamp, received_block)
         computed_block = main.block_chain.blocks[-1]
-    add_to_db(computed_block)
+    print("New block mined!\n", computed_block)
+    if main.is_miner is True:
+        add_to_db(computed_block)
     del computed_block
+    sleep(1)
     data_collector.prepare_device_block(client, userdata.get("priv_key"), userdata.get("id_device"), userdata.get("mac_address"))
 
 
@@ -92,14 +97,20 @@ def add_to_db(computed_block):
 
 def add_trust_value(client, userdata, message):
     id_dev = str(message.payload, "UTF-8")
-    trust_value = trusted_devices.get(id_dev) + 1
-    trusted_devices.update({id_dev: trust_value})
+    try:
+        trust_value = trusted_devices.get(id_dev) + 1
+        trusted_devices.update({id_dev: trust_value})
+    except TypeError:
+        None
 
 
 def decrement_trust_value(client, userdata, message):
     id_dev = str(message.payload, "UTF-8")
-    trust_value = trusted_devices.get(id_dev) - 2
-    trusted_devices.update({id_dev: trust_value})
+    try:
+        trust_value = trusted_devices.get(id_dev) - 2
+        trusted_devices.update({id_dev: trust_value})
+    except TypeError:
+        None
 
 
 def choose_new_miner(client, userdata):
@@ -108,14 +119,13 @@ def choose_new_miner(client, userdata):
     print(could_be_miner)
     new_miner = random.choice(list(could_be_miner.keys()))
     client.publish(helpers.utils.CHOOSE_MINER, new_miner)
-    # data_collector.prepare_device_block(client, userdata.get("priv_key"), userdata.get("id_device"), userdata.get("mac_address"))
 
 
 def new_miner(client, userdata, message):
     if str(message.payload, "UTF-8") == userdata.get("id_device"):
-        client.user_data_set({"isMiner": True})
+        main.is_miner = True
     else:
-        client.user_data_set({"isMiner": False})
+        main.is_miner = False
 
 
 def resend_device_info(client, userdata, message):

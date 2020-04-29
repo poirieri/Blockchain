@@ -15,7 +15,7 @@ temporary_blocks = []
 block_chain = MinimalBlock.MinimalChain()
 trusted_devices = {}
 trust_rate = int(sys.argv[1])
-isMiner = bool(sys.argv[2])
+is_miner = bool(int(sys.argv[2]))
 mac_address = hex(uuid.getnode())
 global id_device
 
@@ -23,7 +23,7 @@ global id_device
 def main():
     id_device = str(randint(0, 100000))
     keys = initialization.configure_keys()
-    client = initialization.configure_client(id_device, isMiner, mac_address, keys)
+    client = initialization.configure_client(id_device, is_miner, mac_address, keys)
     initialization.send_device_info(client, keys, id_device, mac_address, trust_rate)
     data_collector.prepare_device_block(client, keys[1], id_device, mac_address)
     client.loop_forever()
