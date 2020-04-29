@@ -8,6 +8,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 In order to run this project you need to download Mosquitto broker implementation: https://mosquitto.org/ and run mosquitto.exe
+MongoDB Compass with Server installed
 Python 3.8
 
 ### Packages:
