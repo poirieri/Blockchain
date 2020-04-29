@@ -60,14 +60,15 @@ def validate_blocks(client, validated_blocks):
             client.publish(helpers.utils.FALSE_VALIDATION, i['id'])
             print("fake block")
             return
+    new_block.update({"time": str(datetime.datetime.utcnow())})
     client.publish(helpers.utils.NEW_BLOCK, BSON.encode(new_block))
 
-#TODO fix timestamp!
 
 def add_new_block(client, userdata, message):
     received_block = BSON.decode(message.payload)
+    timestamp = received_block.pop("time")
     if main.block_chain.blocks.__len__() == 0:
-        computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, str(datetime.datetime.utcnow()), received_block)
+        computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, timestamp, received_block)
         # computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain,
         #                                                             received_block)
     else:
