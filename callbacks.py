@@ -69,12 +69,13 @@ def add_new_block(client, userdata, message):
     timestamp = received_block.pop("time")
     if main.block_chain.blocks.__len__() == 0:
         computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain, timestamp, received_block)
-        # computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain,
-        #                                                             received_block)
+        main.block_chain.blocks.append(computed_block)
     else:
-         computed_block = MinimalBlock.MinimalChain.add_block(main.block_chain, received_block)
+        main.block_chain.add_block(timestamp, received_block)
+        computed_block = main.block_chain.blocks[-1]
     add_to_db(computed_block)
     del computed_block
+    data_collector.prepare_device_block(client, userdata.get("priv_key"), userdata.get("id_device"), userdata.get("mac_address"))
 
 
 def add_to_db(computed_block):

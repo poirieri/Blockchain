@@ -2,7 +2,6 @@ import json
 import uuid
 import bson
 import paho.mqtt.client as mqtt
-import callbacks
 import security
 import helpers.utils
 import main

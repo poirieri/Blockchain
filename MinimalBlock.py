@@ -40,13 +40,13 @@ class MinimalChain:
                             transactions,
                             'arbitrary')
 
-    def add_block(self, data):
+    def add_block(self, time, data):
         self.blocks.append(MinimalBlock(len(self.blocks),
-                                        datetime.datetime.utcnow(),
+                                        time,
                                         data,
                                         self.blocks[len(self.blocks) - 1].hash))
 
-    def get_chain_size(self):  # excl;ude genesis block
+    def get_chain_size(self):  # exclude genesis block
         return len(self.blocks) - 1
 
     def verify(self, verbose=True):
