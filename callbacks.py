@@ -10,7 +10,6 @@ import initialization
 import security
 from bson import BSON
 import helpers.utils
-from main import list_devices, trusted_devices, temporary_blocks
 import main
 import data_collector
 MAX_BLOCKS = 3
@@ -18,32 +17,37 @@ MAX_BLOCKS = 3
 
 def add_device_info_to_store(client, userdata, message):
     tmp_object = json.loads(message.payload)
-    list_devices.append(
-        initialization.DeviceInfo(tmp_object['id'], tmp_object['mac_address'], "client/" + str(tmp_object['id']),
+    if list(filter(lambda x: x.id == tmp_object['id'], main.list_devices)).__len__() == 0:
+        main.list_devices.append(
+            initialization.DeviceInfo(tmp_object['id'], tmp_object['mac_address'], "client/" + str(tmp_object['id']),
                                   tmp_object['public_key_e'], tmp_object['public_key_n']))
 
 
 def add_trust_rate_to_store(client, userdata, message):
     temp = json.loads(message.payload)
-    trusted_devices.update(temp)
+    main.trusted_devices.update(temp)
 
 
-def find_device(list_devices, id_device):
-    filter_obj = list(filter(lambda x: x.id == id_device, list_devices))
+def find_device_public_key(list_devices, id_device):
+    filter_obj = list(filter(lambda x: x.id == id_device, main.list_devices))
     return PublicKey(filter_obj[0].public_key_n, filter_obj[0].public_key_e)
 
 
+def delete_device_from_storages(id_device):
+    filter_obj = list(filter(lambda x: x.id != id_device, main.list_devices))
+    main.list_devices = filter_obj
+
 def find_mac_address(list_devices, id_device):
-    filter_obj = list(filter(lambda x: x.id == id_device, list_devices))
+    filter_obj = list(filter(lambda x: x.id == id_device, main.list_devices))
     return filter_obj[0].mac_address
 
 
 def receive_encrypted_block(client, userdata, message):
     kubus = BSON.decode(message.payload)
-    temporary_blocks.append(kubus)
-    if temporary_blocks.__len__() == MAX_BLOCKS and main.is_miner is True:
-        validate_blocks(client, temporary_blocks)
-        temporary_blocks.clear()
+    main.temporary_blocks.append(kubus)
+    if main.temporary_blocks.__len__() == MAX_BLOCKS and main.is_miner is True:
+        validate_blocks(client, main.temporary_blocks)
+        main.temporary_blocks.clear()
         choose_new_miner(client, userdata)
 
 
@@ -53,8 +57,8 @@ def validate_blocks(client, validated_blocks):
     for i in validated_blocks:
         decrypted_message_verification = security.verify_message(i['transactions'].encode(),
                                                                  i['signature'],
-                                                                 find_device(list_devices, i['id']))
-        if find_mac_address(list_devices, i['id']) == i['mac'] and decrypted_message_verification:
+                                                                 find_device_public_key(main.list_devices, i['id']))
+        if find_mac_address(main.list_devices, i['id']) == i['mac'] and decrypted_message_verification:
             new_block.update({str(iterator): i})
             iterator += 1
             client.publish(helpers.utils.CORRECT_VALIDATION, i['id'])
@@ -98,8 +102,8 @@ def add_to_db(computed_block):
 def add_trust_value(client, userdata, message):
     id_dev = str(message.payload, "UTF-8")
     try:
-        trust_value = trusted_devices.get(id_dev) + 1
-        trusted_devices.update({id_dev: trust_value})
+        trust_value = main.trusted_devices.get(id_dev) + 1
+        main.trusted_devices.update({id_dev: trust_value})
     except TypeError:
         None
 
@@ -107,15 +111,15 @@ def add_trust_value(client, userdata, message):
 def decrement_trust_value(client, userdata, message):
     id_dev = str(message.payload, "UTF-8")
     try:
-        trust_value = trusted_devices.get(id_dev) - 2
-        trusted_devices.update({id_dev: trust_value})
+        trust_value = main.trusted_devices.get(id_dev) - 2
+        main.trusted_devices.update({id_dev: trust_value})
     except TypeError:
         None
 
 
 def choose_new_miner(client, userdata):
     #TODO check if not null!
-    could_be_miner = dict(filter(lambda elem: int(elem[0]) > 10, trusted_devices.items()))
+    could_be_miner = dict(filter(lambda elem: int(elem[0]) > 10, main.trusted_devices.items()))
     print(could_be_miner)
     new_miner = random.choice(list(could_be_miner.keys()))
     client.publish(helpers.utils.CHOOSE_MINER, new_miner)
@@ -130,14 +134,24 @@ def new_miner(client, userdata, message):
 
 def resend_device_info(client, userdata, message):
     tmp_object = json.loads(message.payload)
-    list_devices.append(
-        initialization.DeviceInfo(tmp_object['id'], tmp_object['mac_address'], "client/" + str(tmp_object['id']),
-                                  tmp_object['public_key_e'], tmp_object['public_key_n']))
-    client.publish(helpers.utils.PUB_KEYS_TOPIC, json.dumps(list_devices[0].__dict__))
+    if list(filter(lambda x: x.id == tmp_object['id'], main.list_devices)).__len__() == 0:
+        main.list_devices.append(
+            initialization.DeviceInfo(tmp_object['id'], tmp_object['mac_address'], "client/" + str(tmp_object['id']),
+                                      tmp_object['public_key_e'], tmp_object['public_key_n']))
+    client.publish(helpers.utils.PUB_KEYS_TOPIC, json.dumps(main.list_devices[0].__dict__))
 
 
 def resend_trust_rate(client, userdata, message):
     temp = json.loads(message.payload)
-    trusted_devices.update(temp)
+    main.trusted_devices.update(temp)
     client.publish(helpers.utils.TRUST_RATE,
-                   json.dumps({userdata.get("id_device"): int(trusted_devices.get(userdata.get("id_device")))}))
+                   json.dumps({userdata.get("id_device"): int(main.trusted_devices.get(userdata.get("id_device")))}))
+
+
+def delete_device(client, userdata, message):
+    inactive_device_id = str(message.payload, "UTF-8")
+    try:
+        delete_device_from_storages(inactive_device_id)
+        main.trusted_devices.pop(inactive_device_id)
+    except KeyError:
+        pass

@@ -24,6 +24,7 @@ def configure_client(id_device, is_miner, mac_address, keys):
                           "pub_key": keys[0],
                           "priv_key": keys[1],
                           })
+    client.will_set(helpers.utils.DEVICE_OFFLINE, payload=id_device, qos=0, retain=True)
     client.on_connect = helpers.utils.on_connect
     client.on_message = helpers.utils.on_message
     client.connect("localhost", 1883, 60)

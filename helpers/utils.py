@@ -24,6 +24,7 @@ def subscribe_topics(client):
     client.subscribe(CHOOSE_MINER)
     client.subscribe(NEW_DEVICE)
     client.subscribe(NEW_DEVICE_TRUST_RATE)
+    client.subscribe(DEVICE_OFFLINE)
 
 
 
@@ -36,3 +37,5 @@ def add_callbacks(client):
     client.message_callback_add(FALSE_VALIDATION, callbacks.decrement_trust_value)
     client.message_callback_add(NEW_DEVICE, callbacks.resend_device_info)
     client.message_callback_add(NEW_DEVICE_TRUST_RATE, callbacks.resend_trust_rate)
+    client.message_callback_add(DEVICE_OFFLINE, callbacks.delete_device)
+
