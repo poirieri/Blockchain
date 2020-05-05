@@ -46,7 +46,7 @@ def send_device_info(client, keys, device_id, mac_address, trust_rate):
     try:
         json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
         main.list_devices.append(prepare_device_info(keys, device_id, mac_address))
-        client.publish(helpers.utils.NEW_DEVICE_DEVICE_INFO, json_string)
+        client.publish(helpers.utils.NEW_DEVICE_INFO_RESPOND, json_string)
         main.trusted_devices.update({str(device_id) : trust_rate})
         send_trust_rate(client, device_id, trust_rate)
     except ConnectionError:
