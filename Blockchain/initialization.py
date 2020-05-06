@@ -1,7 +1,8 @@
 import json
 import paho.mqtt.client as mqtt
-from Blockchain import security, main
+from Blockchain import security
 import Blockchain.helpers.utils
+import Blockchain.global_variables as gl
 
 
 class DeviceInfo:
@@ -42,9 +43,9 @@ def prepare_device_info(keys, id_device, mac_address):
 def send_device_info(client, keys, device_id, mac_address, trust_rate):
     try:
         json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
-        main.list_devices.append(prepare_device_info(keys, device_id, mac_address))
+        gl.list_devices.append(prepare_device_info(keys, device_id, mac_address))
         client.publish(Blockchain.helpers.utils.NEW_DEVICE_INFO_RESPOND, json_string)
-        main.trusted_devices.update({str(device_id) : trust_rate})
+        gl.trusted_devices.update({str(device_id) : trust_rate})
         send_trust_rate(client, device_id, trust_rate)
     except ConnectionError:
         print(ConnectionError)

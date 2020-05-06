@@ -1,27 +1,16 @@
-import sys
-import uuid
 from random import randint
-from Blockchain import initialization, data_collector, MinimalBlock
-
-list_devices = []
-transactions = []
-keys = None
-temporary_blocks = []
-block_chain = MinimalBlock.MinimalChain()
-trusted_devices = {}
-trust_rate = int(sys.argv[1])
-is_miner = bool(int(sys.argv[2]))
-mac_address = hex(uuid.getnode())
-global id_device
+from Blockchain import initialization, data_collector
+import Blockchain.global_variables as gl
 
 
 def main():
-    id_device = str(randint(0, 100000))
-    keys = initialization.configure_keys()
-    client = initialization.configure_client(id_device, is_miner, mac_address, keys)
-    initialization.send_device_info(client, keys, id_device, mac_address, trust_rate)
-    data_collector.prepare_device_block(client, keys[1], id_device, mac_address)
+    gl.id_device = str(randint(0, 100000))
+    gl.keys = initialization.configure_keys()
+    client = initialization.configure_client(gl.id_device, gl.is_miner, gl.mac_address, gl.keys)
+    initialization.send_device_info(client, gl.keys, gl.id_device, gl.mac_address, gl.trust_rate)
+    data_collector.prepare_transactions_block(client, gl.keys[1], gl.id_device, gl.mac_address)
     client.loop_forever()
+
 
 if __name__ == '__main__':
     main()

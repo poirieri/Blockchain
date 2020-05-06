@@ -2,11 +2,11 @@ import json
 from time import sleep
 from bson import BSON
 import Blockchain.helpers.utils as utils
-from Blockchain import main, data_collector, MinimalBlock
+from Blockchain import data_collector, MinimalBlock
 from Blockchain.dbconf import add_to_db
+import Blockchain.global_variables as gl
 
-MAX_BLOCKS = 3
-
+MAX_BLOCKS = 2
 
 def add_new_block(client, userdata, message):
     """Callback for NEW_BLOCK
@@ -22,24 +22,24 @@ def add_new_block(client, userdata, message):
                             """
     received_block = BSON.decode(message.payload)
     timestamp = received_block.pop("time")
-    if main.block_chain.blocks.__len__() == 0:
-        computed_block = MinimalBlock.MinimalChain.get_genesis_block(main.block_chain,
+    if gl.block_chain.blocks.__len__() == 0:
+        computed_block = MinimalBlock.MinimalChain.get_genesis_block(gl.block_chain,
                                                                      timestamp,
                                                                      received_block)
-        main.block_chain.blocks.append(computed_block)
+        gl.block_chain.blocks.append(computed_block)
     else:
-        main.block_chain.add_block(timestamp,
-                                   received_block)
-        computed_block = main.block_chain.blocks[-1]
+        gl.block_chain.add_block(timestamp,
+                                 received_block)
+        computed_block = gl.block_chain.blocks[-1]
     print("New block mined!\n", computed_block)
-    if main.is_miner is True:  # to be commented
+    if gl.is_miner is True:  # to be commented
         add_to_db(computed_block)
     del computed_block
     sleep(1)  # to be commented
-    data_collector.prepare_device_block(client,
-                                        userdata.get("priv_key"),
-                                        userdata.get("id_device"),
-                                        userdata.get("mac_address"))
+    data_collector.prepare_transactions_block(client,
+                                              userdata.get("priv_key"),
+                                              userdata.get("id_device"),
+                                              userdata.get("mac_address"))
 
 
 def receive_encrypted_block(client, userdata, message):
@@ -55,11 +55,11 @@ def receive_encrypted_block(client, userdata, message):
                         }
                         """
     received_encrypted_block = BSON.decode(message.payload)
-    main.temporary_blocks.append(received_encrypted_block)
-    if main.temporary_blocks.__len__() == MAX_BLOCKS and main.is_miner is True:
+    gl.temporary_blocks.append(received_encrypted_block)
+    if gl.temporary_blocks.__len__() == MAX_BLOCKS and gl.is_miner is True:
         try:
-            utils.validate_blocks(client, main.temporary_blocks)
-            main.temporary_blocks.clear()
+            utils.validate_blocks(client, gl.temporary_blocks)
+            gl.temporary_blocks.clear()
             utils.choose_new_miner(client)
         except KeyError:
             pass
@@ -72,7 +72,7 @@ def add_trust_rate_to_store(client, userdata, message):
     message.payload = {id_device : trust_rate}
         """
     new_device_trust_rate = json.loads(message.payload)
-    main.trusted_devices.update(new_device_trust_rate)
+    gl.trusted_devices.update(new_device_trust_rate)
 
 
 def add_trust_value(client, userdata, message):
@@ -82,10 +82,10 @@ def add_trust_value(client, userdata, message):
     """
     id_good_device = str(message.payload, "UTF-8")
     try:
-        trust_value = main.trusted_devices.get(id_good_device) + 1
+        trust_value = gl.trusted_devices.get(id_good_device) + 1
         if trust_value >= 20:
             trust_value = 20
-        main.trusted_devices.update({id_good_device: trust_value})
+        gl.trusted_devices.update({id_good_device: trust_value})
     except TypeError:
         None
 
@@ -97,10 +97,10 @@ def decrement_trust_value(client, userdata, message):
     """
     id_bad_device = str(message.payload, "UTF-8")
     try:
-        trust_value = main.trusted_devices.get(id_bad_device) - 2
+        trust_value = gl.trusted_devices.get(id_bad_device) - 2
         if trust_value < 0:
             trust_value = 0
-        main.trusted_devices.update({id_bad_device: trust_value})
+        gl.trusted_devices.update({id_bad_device: trust_value})
     except TypeError:
         None
 
@@ -110,9 +110,9 @@ def new_miner_status(client, userdata, message):
     message.payload - device_id of chosen new miner for next block
     """
     if str(message.payload, "UTF-8") == userdata.get("id_device"):
-        main.is_miner = True
+        gl.is_miner = True
     else:
-        main.is_miner = False
+        gl.is_miner = False
 
 
 def add_device_info_to_store(client, userdata, message):
@@ -143,7 +143,7 @@ def receive_and_send_device_info(client, userdata, message):
     try:
         received_device_info = json.loads(message.payload)
         utils.update_list_devices(received_device_info)
-        client.publish(utils.NEW_DEVICE_INFO, json.dumps(main.list_devices[0].__dict__))
+        client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     except KeyError:
         pass
 
@@ -156,10 +156,10 @@ def receive_and_send_trust_rate(client, userdata, message):
     """
     received_trust_rate = json.loads(message.payload)
     try:
-        main.trusted_devices.update(received_trust_rate)
+        gl.trusted_devices.update(received_trust_rate)
         client.publish(utils.RESPOND_WITH_OWN_TRUST_RATE,
                        json.dumps({userdata.get("id_device"): int(
-                           main.trusted_devices.get(userdata.get("id_device")))}))
+                           gl.trusted_devices.get(userdata.get("id_device")))}))
     except KeyError:
         pass
 
@@ -171,8 +171,8 @@ def delete_device(client, userdata, message):
     """
     inactive_device_id = str(message.payload, "UTF-8")
     try:
-        main.list_devices = list(filter(lambda x: x.id != inactive_device_id, main.list_devices))
-        main.trusted_devices.pop(inactive_device_id)
+        gl.list_devices = list(filter(lambda x: x.id != inactive_device_id, gl.list_devices))
+        gl.trusted_devices.pop(inactive_device_id)
         print(inactive_device_id)
     except KeyError:
         pass

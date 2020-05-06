@@ -2,9 +2,11 @@ import datetime
 import random
 from bson import BSON
 from rsa import PublicKey
-from Blockchain import security, initialization, main, callbacks
+from Blockchain import security, initialization, callbacks
 from Blockchain.callbacks import new_miner_status
 from Blockchain.helpers.common_topics import *
+import Blockchain.global_variables as gl
+
 MINIMUM_TRUST_VALUE = 10
 
 
@@ -45,34 +47,36 @@ def add_callbacks(client):
     client.message_callback_add(NEW_DEVICE_INFO_RESPOND, callbacks.receive_and_send_device_info)
     client.message_callback_add(NEW_DEVICE_TRUST_RATE, callbacks.receive_and_send_trust_rate)
     client.message_callback_add(DEVICE_OFFLINE, callbacks.delete_device)
+    client.message_callback_add(CHOOSE_MINER, callbacks.new_miner_status)
+
 
 
 def choose_new_miner(client):
     #TODO check if not null!
     try:
-        could_be_miner = dict(filter(lambda elem: int(elem[0]) > MINIMUM_TRUST_VALUE, main.trusted_devices.items()))
+        could_be_miner = dict(filter(lambda elem: int(elem[0]) > MINIMUM_TRUST_VALUE, gl.trusted_devices.items()))
         print(could_be_miner)
         new_miner = random.choice(list(could_be_miner.keys()))
-        client.publish(utils.CHOOSE_MINER, new_miner_status)
+        client.publish(CHOOSE_MINER, new_miner)
     except KeyError:
         pass
 
 
 def update_list_devices(new_device_info):
-    if list(filter(lambda x: x.id == new_device_info['id'], main.list_devices)).__len__() == 0:
-        main.list_devices.append(
+    if list(filter(lambda x: x.id == new_device_info['id'], gl.list_devices)).__len__() == 0:
+        gl.list_devices.append(
             initialization.DeviceInfo(new_device_info['id'], new_device_info['mac_address'],
                                       "client/" + str(new_device_info['id']),
                                       new_device_info['public_key_e'], new_device_info['public_key_n']))
 
 
-def find_device_public_key(list_devices, id_device):
-    filter_obj = list(filter(lambda x: x.id == id_device, main.list_devices))
+def find_device_public_key(id_device):
+    filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
     return PublicKey(filter_obj[0].public_key_n, filter_obj[0].public_key_e)
 
 
-def find_mac_address(list_devices, id_device):
-    filter_obj = list(filter(lambda x: x.id == id_device, main.list_devices))
+def find_mac_address(id_device):
+    filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
     return filter_obj[0].mac_address
 
 
@@ -82,14 +86,14 @@ def validate_blocks(client, validated_blocks):
     for i in validated_blocks:
         decrypted_message_verification = security.verify_message(i['transactions'].encode(),
                                                                  i['signature'],
-                                                                 find_device_public_key(main.list_devices, i['id']))
-        if find_mac_address(main.list_devices, i['id']) == i['mac'] and decrypted_message_verification:
+                                                                 find_device_public_key(i['id']))
+        if find_mac_address(i['id']) == i['mac'] and decrypted_message_verification:
             new_block.update({str(iterator): i})
             iterator += 1
-            client.publish(utils.CORRECT_VALIDATION, i['id'])
+            client.publish(CORRECT_VALIDATION, i['id'])
         else:
-            client.publish(utils.FALSE_VALIDATION, i['id'])
+            client.publish(FALSE_VALIDATION, i['id'])
             print("fake block")
             return
     new_block.update({"time": str(datetime.datetime.utcnow())})
-    client.publish(utils.NEW_BLOCK, BSON.encode(new_block))
+    client.publish(NEW_BLOCK, BSON.encode(new_block))

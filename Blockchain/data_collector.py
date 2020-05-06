@@ -1,24 +1,33 @@
 import asyncio
 import datetime
-from Blockchain import security, initialization, main
+from Blockchain import security, initialization
 from bson import BSON
+import Blockchain.global_variables as gl
 
 
 async def transaction():
-    main.transactions.append("data collection" + str(datetime.datetime.now()))
+    """Append transactions list."""
+    gl.transactions.append("data collection" + str(datetime.datetime.now()))
     await asyncio.sleep(2)
 
 
 async def gather_transactions(client):
+    """Gather transactions in transaction list."""
     await asyncio.gather(transaction(), transaction(), transaction())
 
 
-def prepare_device_block(client, private_key, id, mac_address):
+def prepare_transactions_block(client, private_key, id_device, mac_address):
+    """Prepare transaction block containing id, mac_address, signature and set of transactions.
+    :param client:
+    :param private_key:
+    :param id_device:
+    :param mac_address:
+    """
     asyncio.run(gather_transactions(client))
-    list_to_str = ';'.join(map(str, main.transactions))
+    list_to_str = ';'.join(map(str, gl.transactions))
     signature = security.sign_message(list_to_str, private_key)
     data_set = {
-        "id": id,
+        "id": id_device,
         "mac": mac_address,
         "signature": signature,
         "transactions": list_to_str
