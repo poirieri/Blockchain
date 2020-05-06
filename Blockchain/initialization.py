@@ -1,5 +1,9 @@
 import json
+import logging
+
 import paho.mqtt.client as mqtt
+from bson import BSON
+
 from Blockchain import security
 import Blockchain.helpers.utils
 import Blockchain.global_variables as gl
@@ -12,6 +16,9 @@ class DeviceInfo:
         self.topic = topic
         self.public_key_e = public_key_e
         self.public_key_n = public_key_n
+
+    def __repr__(self) -> str:
+        return "ID: " + self.id + ", mac address: " + self.mac_address + " ;"
 
 
 def configure_client(id_device, is_miner, mac_address, keys):
@@ -44,11 +51,12 @@ def send_device_info(client, keys, device_id, mac_address, trust_rate):
     try:
         json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
         gl.list_devices.append(prepare_device_info(keys, device_id, mac_address))
+        logging.debug("Current list of devices: " + gl.list_devices.__repr__())
         client.publish(Blockchain.helpers.utils.NEW_DEVICE_INFO_RESPOND, json_string)
         gl.trusted_devices.update({str(device_id) : trust_rate})
         send_trust_rate(client, device_id, trust_rate)
     except ConnectionError:
-        print(ConnectionError)
+        logging.debug(ConnectionError + "Error send_device_info()")
 
 
 def send_trust_rate(client, device_id,  trust_rate):
@@ -59,7 +67,7 @@ def send_block(client, block):
     try:
         client.publish(Blockchain.helpers.utils.SEND_ENCRYPTED_MESSAGE, block)
     except ConnectionError:
-        print(ConnectionError)
+        logging.debug(ConnectionError + "Error send_block")
 
 
 

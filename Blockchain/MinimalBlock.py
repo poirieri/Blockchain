@@ -28,6 +28,10 @@ class MinimalBlock:
         key.update(str(self.previous_hash).encode('utf-8'))
         return key.hexdigest()
 
+    def __repr__(self) -> str:
+        return "index: " + str(self.index) + "\ntimestamp: " + self.timestamp + "\ndata: " + str(self.data) + "\nprevious hash: " \
+               + self.previous_hash + "\nhash: " + self.hash
+
 
 class MinimalChain:
     def __init__(self):  # initialize when creating a chain

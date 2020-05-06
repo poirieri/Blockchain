@@ -1,4 +1,5 @@
 import datetime
+import logging
 import random
 from bson import BSON
 from rsa import PublicKey
@@ -14,7 +15,7 @@ def on_connect(client, userdata, flags, rc):
     """ Subscribing in on_connect() means that if we lose the connection and
     reconnect then subscriptions will be renewed.
     """
-    print("Connected with result code "+str(rc))
+    logging.debug("Connected with result code "+str(rc))
     subscribe_topics(client)
     add_callbacks(client)
 
@@ -50,13 +51,12 @@ def add_callbacks(client):
     client.message_callback_add(CHOOSE_MINER, callbacks.new_miner_status)
 
 
-
 def choose_new_miner(client):
-    #TODO check if not null!
     try:
         could_be_miner = dict(filter(lambda elem: int(elem[0]) > MINIMUM_TRUST_VALUE, gl.trusted_devices.items()))
-        print(could_be_miner)
+        logging.debug("Devices suitable for mining blocks:" + str(could_be_miner))
         new_miner = random.choice(list(could_be_miner.keys()))
+        logging.debug("Device chosen to mine next block: " + str(new_miner))
         client.publish(CHOOSE_MINER, new_miner)
     except KeyError:
         pass
@@ -71,13 +71,19 @@ def update_list_devices(new_device_info):
 
 
 def find_device_public_key(id_device):
-    filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
-    return PublicKey(filter_obj[0].public_key_n, filter_obj[0].public_key_e)
+    try:
+        filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
+        return PublicKey(filter_obj[0].public_key_n, filter_obj[0].public_key_e)
+    except IndexError:
+        logging.debug("Index out of range - find_device_public_key()")
 
 
 def find_mac_address(id_device):
-    filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
-    return filter_obj[0].mac_address
+    try:
+        filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
+        return filter_obj[0].mac_address
+    except IndexError:
+        logging.debug("Index out of range - find_mac_address()")
 
 
 def validate_blocks(client, validated_blocks):
@@ -93,7 +99,7 @@ def validate_blocks(client, validated_blocks):
             client.publish(CORRECT_VALIDATION, i['id'])
         else:
             client.publish(FALSE_VALIDATION, i['id'])
-            print("fake block")
+            logging.debug("fake block: " + i['id'])
             return
     new_block.update({"time": str(datetime.datetime.utcnow())})
     client.publish(NEW_BLOCK, BSON.encode(new_block))

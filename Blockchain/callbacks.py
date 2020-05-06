@@ -1,4 +1,5 @@
 import json
+import logging
 from time import sleep
 from bson import BSON
 import Blockchain.helpers.utils as utils
@@ -7,6 +8,7 @@ from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
 
 MAX_BLOCKS = 2
+
 
 def add_new_block(client, userdata, message):
     """Callback for NEW_BLOCK
@@ -31,7 +33,7 @@ def add_new_block(client, userdata, message):
         gl.block_chain.add_block(timestamp,
                                  received_block)
         computed_block = gl.block_chain.blocks[-1]
-    print("New block mined!\n", computed_block)
+    logging.debug("New block mined!\n", computed_block.__str__())
     if gl.is_miner is True:  # to be commented
         add_to_db(computed_block)
     del computed_block
@@ -86,6 +88,7 @@ def add_trust_value(client, userdata, message):
         if trust_value >= 20:
             trust_value = 20
         gl.trusted_devices.update({id_good_device: trust_value})
+        logging.debug("Trust rate updated: " + str({id_good_device: trust_value}))
     except TypeError:
         None
 
@@ -101,6 +104,7 @@ def decrement_trust_value(client, userdata, message):
         if trust_value < 0:
             trust_value = 0
         gl.trusted_devices.update({id_bad_device: trust_value})
+        logging.debug("Trust rate updated: " + str({id_bad_device: trust_value}))
     except TypeError:
         None
 
@@ -129,6 +133,7 @@ def add_device_info_to_store(client, userdata, message):
     new_device_info = json.loads(message.payload)
     utils.update_list_devices(new_device_info)
 
+
 def receive_and_send_device_info(client, userdata, message):
     """Callback for NEW_DEVICE_INFO_RESPOND
     Takes place when a message with device info is received from other device.
@@ -143,8 +148,13 @@ def receive_and_send_device_info(client, userdata, message):
     try:
         received_device_info = json.loads(message.payload)
         utils.update_list_devices(received_device_info)
+        logging.debug("Updated device list with: ")
+        logging.debug(received_device_info.__repr__())
+        # logging.debug("Updated device list with: " + received_device_info)
+        # logging.debug("Updated device list: " + gl.list_devices)
         client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     except KeyError:
+        logging.debug("Error in receive_and_send_device_info()")
         pass
 
 
@@ -156,11 +166,15 @@ def receive_and_send_trust_rate(client, userdata, message):
     """
     received_trust_rate = json.loads(message.payload)
     try:
+
         gl.trusted_devices.update(received_trust_rate)
+        logging.debug("Updated trust list with: " + str(received_trust_rate))
+        logging.debug("Current trust list: " + str(gl.trusted_devices))
         client.publish(utils.RESPOND_WITH_OWN_TRUST_RATE,
                        json.dumps({userdata.get("id_device"): int(
                            gl.trusted_devices.get(userdata.get("id_device")))}))
     except KeyError:
+        logging.debug("Error in receive_and_send_trust_rate()")
         pass
 
 
@@ -173,6 +187,9 @@ def delete_device(client, userdata, message):
     try:
         gl.list_devices = list(filter(lambda x: x.id != inactive_device_id, gl.list_devices))
         gl.trusted_devices.pop(inactive_device_id)
-        print(inactive_device_id)
+        logging.debug("Device inactive: " + inactive_device_id.__str__())
+        logging.debug("Devices active: " + str(gl.list_devices) + "\n" +
+                      "Trust list" + str(gl.trusted_devices))
     except KeyError:
+        logging.debug("Error in delete_device() - no device detected")
         pass
