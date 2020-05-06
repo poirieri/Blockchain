@@ -11,6 +11,22 @@ In order to run this project you need to download Mosquitto broker implementatio
 MongoDB Compass with Server installed
 Python 3.8
 
+##Run project
+
+```
+main.exe trust_value isMiner
+```
+At least one device has to be Miner.
+
+In order to run miner device
+```
+main.py 10 1  
+```
+In order to run non-miner device (not-trusted yet)
+```
+main.py 5 0 
+```
+
 ### Packages:
 * paho-mqtt	1.5.0	1.5.0
 * pip	19.0.3	20.1
