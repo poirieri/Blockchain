@@ -37,7 +37,7 @@ def subscribe_topics(client):
     client.subscribe(NEW_BLOCK)
     client.subscribe(CHOOSE_MINER)
     client.subscribe(NEW_DEVICE_TRUST_RATE)
-    # client.subscribe(DEVICE_OFFLINE)
+    client.subscribe(DEVICE_OFFLINE)
 
 
 def add_callbacks(client):
@@ -104,5 +104,5 @@ def validate_blocks(client, validated_blocks):
             client.publish(FALSE_VALIDATION, i['id'], qos=2)
             logging.debug("fake block: " + i['id'])
             return
-    new_block.update({"time": str(datetime.datetime.now)})
+    new_block.update({"time": str(datetime.datetime.now())[:19]})
     client.publish(NEW_BLOCK, BSON.encode(new_block), qos=2)

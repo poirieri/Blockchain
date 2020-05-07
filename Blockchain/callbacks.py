@@ -24,24 +24,28 @@ def add_new_block(client, userdata, message):
                             """
     received_block = BSON.decode(message.payload)
     timestamp = received_block.pop("time")
-    if gl.block_chain.blocks.__len__() == 0:
-        computed_block = MinimalBlock.MinimalChain.get_genesis_block(gl.block_chain,
-                                                                     timestamp,
-                                                                     received_block)
-        gl.block_chain.blocks.append(computed_block)
-    else:
-        gl.block_chain.add_block(timestamp,
-                                 received_block)
-        computed_block = gl.block_chain.blocks[-1]
-    logging.debug("New block mined!\n", computed_block.__str__())
-    if gl.is_miner is True:  # to be commented
-        add_to_db(computed_block)
-    del computed_block
-    sleep(1)  # to be commented
-    data_collector.prepare_transactions_block(client,
-                                              userdata.get("priv_key"),
-                                              userdata.get("id_device"),
-                                              userdata.get("mac_address"))
+    try:
+        if gl.block_chain.blocks.__len__() == 0:
+            computed_block = MinimalBlock.MinimalChain.get_genesis_block(gl.block_chain,
+                                                                         timestamp,
+                                                                         received_block)
+            gl.block_chain.blocks.append(computed_block)
+        else:
+            gl.block_chain.add_block(timestamp,
+                                     received_block)
+            computed_block = gl.block_chain.blocks[-1]
+        logging.debug("New block mined!\n", computed_block.__str__())
+        if gl.is_miner is True:  # to be commented
+            add_to_db(computed_block)
+        del computed_block
+    except KeyError:
+        logging.debug("Error in add_new_block()")
+    finally:
+        sleep(1)  # to be commented
+        data_collector.prepare_transactions_block(client,
+                                                  userdata.get("priv_key"),
+                                                  userdata.get("id_device"),
+                                                  userdata.get("mac_address"))
 
 
 def receive_encrypted_block(client, userdata, message):
@@ -64,7 +68,7 @@ def receive_encrypted_block(client, userdata, message):
             gl.temporary_blocks.clear()
             utils.choose_new_miner(client)
         except KeyError:
-            pass
+            logging.debug("Error in receive_encrypted_block()")
 
 
 def add_trust_rate_to_store(client, userdata, message):
@@ -73,8 +77,11 @@ def add_trust_rate_to_store(client, userdata, message):
     Adds to dictionary trust rate and sends current trust rate for device.
     message.payload = {id_device : trust_rate}
         """
-    new_device_trust_rate = json.loads(message.payload)
-    gl.trusted_devices.update(new_device_trust_rate)
+    try:
+        new_device_trust_rate = json.loads(message.payload)
+        gl.trusted_devices.update(new_device_trust_rate)
+    except KeyError:
+        logging.debug("Error in add_trust_rate_to_store()")
 
 
 def add_trust_value(client, userdata, message):
@@ -90,7 +97,7 @@ def add_trust_value(client, userdata, message):
         gl.trusted_devices.update({id_good_device: trust_value})
         logging.debug("Trust rate updated: " + str({id_good_device: trust_value}))
     except TypeError:
-        None
+        logging.debug("Error in add_trust_value()")
 
 
 def decrement_trust_value(client, userdata, message):
@@ -106,17 +113,20 @@ def decrement_trust_value(client, userdata, message):
         gl.trusted_devices.update({id_bad_device: trust_value})
         logging.debug("Trust rate updated: " + str({id_bad_device: trust_value}))
     except TypeError:
-        None
+        logging.debug("Error in decrement_trust_value()")
 
 
 def new_miner_status(client, userdata, message):
     """Callback for CHOOSE_MINER
     message.payload - device_id of chosen new miner for next block
     """
-    if str(message.payload, "UTF-8") == userdata.get("id_device"):
-        gl.is_miner = True
-    else:
-        gl.is_miner = False
+    try:
+        if str(message.payload, "UTF-8") == userdata.get("id_device"):
+            gl.is_miner = True
+        else:
+            gl.is_miner = False
+    except KeyError:
+        logging.debug("Error in new_miner_status()")
 
 
 def add_device_info_to_store(client, userdata, message):
@@ -130,9 +140,11 @@ def add_device_info_to_store(client, userdata, message):
                         public_key_n: ...
                         }
     """
-    print("add_device_info_to_store")
-    new_device_info = json.loads(message.payload)
-    utils.update_list_devices(new_device_info)
+    try:
+        new_device_info = json.loads(message.payload)
+        utils.update_list_devices(new_device_info)
+    except KeyError:
+        logging.debug("Error in add_device_info_to_store()")
 
 
 def receive_and_send_device_info(client, userdata, message):
@@ -146,12 +158,14 @@ def receive_and_send_device_info(client, userdata, message):
                         public_key_n: ...
                         }
     """
-    print("receive_and_send_device_info")
-    received_device_info = json.loads(message.payload)
-    utils.update_list_devices(received_device_info)
-    logging.debug("Updated device list with: " + received_device_info.__repr__())
-    logging.debug("Updated device list: " + str(gl.list_devices))
-    client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__), qos=2)
+    try:
+        received_device_info = json.loads(message.payload)
+        utils.update_list_devices(received_device_info)
+        logging.debug("Updated device list with: " + received_device_info.__repr__())
+        logging.debug("Updated device list: " + str(gl.list_devices))
+        client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__), qos=2)
+    except KeyError:
+        logging.debug("Error in receive_and_send_device_info()")
 
 
 def receive_and_send_trust_rate(client, userdata, message):
@@ -162,7 +176,6 @@ def receive_and_send_trust_rate(client, userdata, message):
     """
     received_trust_rate = json.loads(message.payload)
     try:
-
         gl.trusted_devices.update(received_trust_rate)
         logging.debug("Updated trust list with: " + str(received_trust_rate))
         logging.debug("Current trust list: " + str(gl.trusted_devices))
@@ -171,7 +184,6 @@ def receive_and_send_trust_rate(client, userdata, message):
                            gl.trusted_devices.get(userdata.get("id_device")))}), qos=2)
     except KeyError:
         logging.debug("Error in receive_and_send_trust_rate()")
-        pass
 
 
 def delete_device(client, userdata, message):
