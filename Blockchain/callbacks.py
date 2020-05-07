@@ -7,7 +7,7 @@ from Blockchain import data_collector, MinimalBlock
 from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
 
-MAX_BLOCKS = 2
+MAX_BLOCKS = 3
 
 
 def add_new_block(client, userdata, message):
@@ -22,6 +22,7 @@ def add_new_block(client, userdata, message):
                             "transactions": [list],
                             "time": str(datetime.datetime.utcnow())
                             """
+
     received_block = BSON.decode(message.payload)
     timestamp = received_block.pop("time")
     try:
@@ -91,9 +92,8 @@ def add_trust_value(client, userdata, message):
     """
     id_good_device = str(message.payload, "UTF-8")
     try:
-        trust_value = gl.trusted_devices.get(id_good_device) + 1
-        if trust_value >= 20:
-            trust_value = 20
+        trust_value = 20 if (gl.trusted_devices.get(id_good_device) + 1) >= 20 else \
+            (gl.trusted_devices.get(id_good_device) + 1)
         gl.trusted_devices.update({id_good_device: trust_value})
         logging.debug("Trust rate updated: " + str({id_good_device: trust_value}))
     except TypeError:
@@ -107,9 +107,8 @@ def decrement_trust_value(client, userdata, message):
     """
     id_bad_device = str(message.payload, "UTF-8")
     try:
-        trust_value = gl.trusted_devices.get(id_bad_device) - 2
-        if trust_value < 0:
-            trust_value = 0
+        trust_value = 0 if (gl.trusted_devices.get(id_bad_device) - 2) < 0 else \
+            (gl.trusted_devices.get(id_bad_device) - 2)
         gl.trusted_devices.update({id_bad_device: trust_value})
         logging.debug("Trust rate updated: " + str({id_bad_device: trust_value}))
     except TypeError:
@@ -121,10 +120,7 @@ def new_miner_status(client, userdata, message):
     message.payload - device_id of chosen new miner for next block
     """
     try:
-        if str(message.payload, "UTF-8") == userdata.get("id_device"):
-            gl.is_miner = True
-        else:
-            gl.is_miner = False
+        gl.is_miner = True if str(message.payload, "UTF-8") == userdata.get("id_device") else False
     except KeyError:
         logging.debug("Error in new_miner_status()")
 

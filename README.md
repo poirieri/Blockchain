@@ -20,11 +20,11 @@ At least one device has to be Miner.
 
 In order to run miner device
 ```
-main.py 10 1  
+main.py 1  
 ```
 In order to run non-miner device (not-trusted yet)
 ```
-main.py 5 0 
+main.py 0
 ```
 
 ### Packages:
@@ -39,11 +39,11 @@ main.py trust_value isMiner
 ```
 In order to run miner device
 ```
-main.py 10 1  
+main.py 1 
 ```
 In order to run non-miner device (not-trusted yet)
 ```
-main.py 5 0 
+main.py 1
 ```
 
 ## Versioning

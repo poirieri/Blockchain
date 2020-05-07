@@ -15,6 +15,8 @@ def main():
     data_collector.prepare_transactions_block(client, gl.keys[1], gl.id_device, gl.mac_address)
     client.loop_forever()
 
+# TODO Check why no error but mining blocks stop
+
 
 if __name__ == '__main__':
     main()
