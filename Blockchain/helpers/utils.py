@@ -23,19 +23,21 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     """ The callback for when a PUBLISH message is received from the server."""
     print(msg.topic+" "+str(msg.payload))
+    if msg.retain == 1:
+        print("This is a retained message")
 
 
 def subscribe_topics(client):
     client.subscribe(NEW_DEVICE_INFO)
+    client.subscribe(NEW_DEVICE_INFO_RESPOND)
     client.subscribe(SEND_ENCRYPTED_MESSAGE)
     client.subscribe(RESPOND_WITH_OWN_TRUST_RATE)
     client.subscribe(FALSE_VALIDATION)
     client.subscribe(CORRECT_VALIDATION)
     client.subscribe(NEW_BLOCK)
     client.subscribe(CHOOSE_MINER)
-    client.subscribe(NEW_DEVICE_INFO_RESPOND)
     client.subscribe(NEW_DEVICE_TRUST_RATE)
-    client.subscribe(DEVICE_OFFLINE)
+    # client.subscribe(DEVICE_OFFLINE)
 
 
 def add_callbacks(client):
@@ -57,7 +59,7 @@ def choose_new_miner(client):
         logging.debug("Devices suitable for mining blocks:" + str(could_be_miner))
         new_miner = random.choice(list(could_be_miner.keys()))
         logging.debug("Device chosen to mine next block: " + str(new_miner))
-        client.publish(CHOOSE_MINER, new_miner)
+        client.publish(CHOOSE_MINER, new_miner, qos=2)
     except KeyError:
         pass
 
@@ -68,6 +70,7 @@ def update_list_devices(new_device_info):
             initialization.DeviceInfo(new_device_info['id'], new_device_info['mac_address'],
                                       "client/" + str(new_device_info['id']),
                                       new_device_info['public_key_e'], new_device_info['public_key_n']))
+        logging.debug("List device updated: " + str(new_device_info))
 
 
 def find_device_public_key(id_device):
@@ -96,10 +99,10 @@ def validate_blocks(client, validated_blocks):
         if find_mac_address(i['id']) == i['mac'] and decrypted_message_verification:
             new_block.update({str(iterator): i})
             iterator += 1
-            client.publish(CORRECT_VALIDATION, i['id'])
+            client.publish(CORRECT_VALIDATION, i['id'], qos=2)
         else:
-            client.publish(FALSE_VALIDATION, i['id'])
+            client.publish(FALSE_VALIDATION, i['id'], qos=2)
             logging.debug("fake block: " + i['id'])
             return
-    new_block.update({"time": str(datetime.datetime.utcnow())})
-    client.publish(NEW_BLOCK, BSON.encode(new_block))
+    new_block.update({"time": str(datetime.datetime.now)})
+    client.publish(NEW_BLOCK, BSON.encode(new_block), qos=2)

@@ -130,6 +130,7 @@ def add_device_info_to_store(client, userdata, message):
                         public_key_n: ...
                         }
     """
+    print("add_device_info_to_store")
     new_device_info = json.loads(message.payload)
     utils.update_list_devices(new_device_info)
 
@@ -145,17 +146,12 @@ def receive_and_send_device_info(client, userdata, message):
                         public_key_n: ...
                         }
     """
-    try:
-        received_device_info = json.loads(message.payload)
-        utils.update_list_devices(received_device_info)
-        logging.debug("Updated device list with: ")
-        logging.debug(received_device_info.__repr__())
-        # logging.debug("Updated device list with: " + received_device_info)
-        # logging.debug("Updated device list: " + gl.list_devices)
-        client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
-    except KeyError:
-        logging.debug("Error in receive_and_send_device_info()")
-        pass
+    print("receive_and_send_device_info")
+    received_device_info = json.loads(message.payload)
+    utils.update_list_devices(received_device_info)
+    logging.debug("Updated device list with: " + received_device_info.__repr__())
+    logging.debug("Updated device list: " + str(gl.list_devices))
+    client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__), qos=2)
 
 
 def receive_and_send_trust_rate(client, userdata, message):
@@ -172,7 +168,7 @@ def receive_and_send_trust_rate(client, userdata, message):
         logging.debug("Current trust list: " + str(gl.trusted_devices))
         client.publish(utils.RESPOND_WITH_OWN_TRUST_RATE,
                        json.dumps({userdata.get("id_device"): int(
-                           gl.trusted_devices.get(userdata.get("id_device")))}))
+                           gl.trusted_devices.get(userdata.get("id_device")))}), qos=2)
     except KeyError:
         logging.debug("Error in receive_and_send_trust_rate()")
         pass
@@ -192,4 +188,3 @@ def delete_device(client, userdata, message):
                       "Trust list" + str(gl.trusted_devices))
     except KeyError:
         logging.debug("Error in delete_device() - no device detected")
-        pass
