@@ -1,5 +1,8 @@
 import asyncio
 import datetime
+import logging
+import time
+from random import randint
 from Blockchain import security, initialization
 from bson import BSON
 import Blockchain.global_variables as gl
@@ -8,12 +11,12 @@ import Blockchain.global_variables as gl
 async def transaction():
     """Append transactions list."""
     gl.transactions.append("data collection" + str(datetime.datetime.now()))
-    await asyncio.sleep(2)
+    time.sleep(randint(0, 10))
 
 
 async def gather_transactions(client):
     """Gather transactions in transaction list."""
-    await asyncio.gather(transaction(), transaction(), transaction())
+    return await asyncio.gather(transaction(), transaction(), transaction())
 
 
 def prepare_transactions_block(client, private_key, id_device, mac_address):
@@ -24,6 +27,7 @@ def prepare_transactions_block(client, private_key, id_device, mac_address):
     :param mac_address:
     """
     asyncio.run(gather_transactions(client))
+    logging.debug("Current block tr" + gl.transactions)
     list_to_str = ';'.join(map(str, gl.transactions))
     signature = security.sign_message(list_to_str, private_key)
     data_set = {

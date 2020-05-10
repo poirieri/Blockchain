@@ -1,8 +1,8 @@
 import json
 import logging
 import time
-
 import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
 from bson import BSON
 
 from Blockchain import security
@@ -23,7 +23,7 @@ class DeviceInfo:
 
 
 def configure_client(id_device, is_miner, mac_address, keys):
-    client = mqtt.Client()
+    client = mqtt.Client(clean_session=True)
     client.user_data_set({"id_device": id_device,
                           "isMiner": is_miner,
                           "mac_address": mac_address,
@@ -54,21 +54,20 @@ def send_device_info(client, keys, device_id, mac_address, trust_rate):
         json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
         gl.list_devices.append(prepare_device_info(keys, device_id, mac_address))
         logging.debug("Current list of devices: " + gl.list_devices.__repr__())
-        client.publish(Blockchain.helpers.utils.NEW_DEVICE_INFO_RESPOND, json_string, qos=2)
-        # client.publish(Blockchain.helpers.utils.NEW_DEVICE_INFO, json_string)
         gl.trusted_devices.update({str(device_id): trust_rate})
-        send_trust_rate(client, device_id, trust_rate)
+        msgs = [(Blockchain.helpers.utils.NEW_DEVICE_INFO_RESPOND, json_string, 2, True),
+                         (Blockchain.helpers.utils.NEW_DEVICE_TRUST_RATE, json.dumps({str(device_id): trust_rate}),
+                          2, True)]
+        publish.multiple(msgs)
+
     except ConnectionError:
         logging.debug(ConnectionError + "Error send_device_info()")
 
 
-def send_trust_rate(client, device_id,  trust_rate):
-    client.publish(Blockchain.helpers.utils.NEW_DEVICE_TRUST_RATE, json.dumps({str(device_id): trust_rate}), qos=2)
-
-
 def send_block(client, block):
     try:
-        client.publish(Blockchain.helpers.utils.SEND_ENCRYPTED_MESSAGE, block, qos=2)
+        logging.debug("data send - send_block()")
+        client.publish(Blockchain.helpers.utils.SEND_ENCRYPTED_MESSAGE, block)
     except ConnectionError:
         logging.debug(ConnectionError + "Error send_block")
 

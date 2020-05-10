@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from time import sleep
 from bson import BSON
 import Blockchain.helpers.utils as utils
@@ -35,18 +36,17 @@ def add_new_block(client, userdata, message):
             gl.block_chain.add_block(timestamp,
                                      received_block)
             computed_block = gl.block_chain.blocks[-1]
-        logging.debug("New block mined!\n", computed_block.__str__())
+        logging.debug("New block mined!\n")
         if gl.is_miner is True:  # to be commented
             add_to_db(computed_block)
         del computed_block
     except KeyError:
         logging.debug("Error in add_new_block()")
-    finally:
-        sleep(1)  # to be commented
-        data_collector.prepare_transactions_block(client,
-                                                  userdata.get("priv_key"),
-                                                  userdata.get("id_device"),
-                                                  userdata.get("mac_address"))
+        time.sleep(5)
+    data_collector.prepare_transactions_block(client,
+                                              userdata.get("priv_key"),
+                                              userdata.get("id_device"),
+                                              userdata.get("mac_address"))
 
 
 def receive_encrypted_block(client, userdata, message):
@@ -70,6 +70,8 @@ def receive_encrypted_block(client, userdata, message):
             utils.choose_new_miner(client)
         except KeyError:
             logging.debug("Error in receive_encrypted_block()")
+        except AttributeError:
+            logging.debug("Error  no public key- verify")
 
 
 def add_trust_rate_to_store(client, userdata, message):
@@ -156,10 +158,11 @@ def receive_and_send_device_info(client, userdata, message):
     """
     try:
         received_device_info = json.loads(message.payload)
-        utils.update_list_devices(received_device_info)
-        logging.debug("Updated device list with: " + received_device_info.__repr__())
-        logging.debug("Updated device list: " + str(gl.list_devices))
-        client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__), qos=2)
+        if received_device_info['id'] != userdata.get('id_device'):
+            utils.update_list_devices(received_device_info)
+            logging.debug("Updated device list with: " + received_device_info.__repr__())
+            logging.debug("Updated device list: " + str(gl.list_devices))
+            client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     except KeyError:
         logging.debug("Error in receive_and_send_device_info()")
 
@@ -178,6 +181,8 @@ def receive_and_send_trust_rate(client, userdata, message):
         client.publish(utils.RESPOND_WITH_OWN_TRUST_RATE,
                        json.dumps({userdata.get("id_device"): int(
                            gl.trusted_devices.get(userdata.get("id_device")))}), qos=2)
+        if gl.trusted_devices.__len__() > 2 and gl.list_devices.__len__() > 2:  # TODO change to default value
+            data_collector.prepare_transactions_block(client, gl.keys[1], gl.id_device, gl.mac_address)
     except KeyError:
         logging.debug("Error in receive_and_send_trust_rate()")
 

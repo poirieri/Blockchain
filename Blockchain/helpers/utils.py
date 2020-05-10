@@ -55,13 +55,17 @@ def add_callbacks(client):
 
 def choose_new_miner(client):
     try:
-        could_be_miner = dict(filter(lambda elem: int(elem[0]) > MINIMUM_TRUST_VALUE, gl.trusted_devices.items()))
+        could_be_miner = dict(filter(lambda elem: int(elem[1]) >= MINIMUM_TRUST_VALUE, gl.trusted_devices.items()))
         logging.debug("Devices suitable for mining blocks:" + str(could_be_miner))
         new_miner = random.choice(list(could_be_miner.keys()))
         logging.debug("Device chosen to mine next block: " + str(new_miner))
         client.publish(CHOOSE_MINER, new_miner, qos=2)
     except KeyError:
         pass
+    except IndexError:
+        logging.error("choose_new_miner() not having anyone who ca candidate")
+        new_miner = gl.id_device
+        client.publish(CHOOSE_MINER, new_miner)
 
 
 def update_list_devices(new_device_info):
