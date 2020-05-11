@@ -24,4 +24,6 @@ if __name__ == '__main__':
 """
 TO DO
 1. Fix too much sending dev info
+2.what if another 2 devices have trust rate
+2. Delete sending trust_rate -> merge!!
 """

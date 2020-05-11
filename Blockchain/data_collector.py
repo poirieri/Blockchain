@@ -27,7 +27,6 @@ def prepare_transactions_block(client, private_key, id_device, mac_address):
     :param mac_address:
     """
     asyncio.run(gather_transactions(client))
-    logging.debug("Current block tr" + gl.transactions)
     list_to_str = ';'.join(map(str, gl.transactions))
     signature = security.sign_message(list_to_str, private_key)
     data_set = {

@@ -139,6 +139,7 @@ def add_device_info_to_store(client, userdata, message):
                         }
     """
     try:
+        print("add_device_info_to_store")
         new_device_info = json.loads(message.payload)
         utils.update_list_devices(new_device_info)
     except KeyError:
@@ -160,6 +161,7 @@ def receive_and_send_device_info(client, userdata, message):
         received_device_info = json.loads(message.payload)
         if received_device_info['id'] != userdata.get('id_device'):
             utils.update_list_devices(received_device_info)
+            print("receive_and_send_device_info")
             logging.debug("Updated device list with: " + received_device_info.__repr__())
             logging.debug("Updated device list: " + str(gl.list_devices))
             client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
