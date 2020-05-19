@@ -1,10 +1,9 @@
 import json
 import logging
 import time
-from time import sleep
 from bson import BSON
 import Blockchain.helpers.utils as utils
-from Blockchain import data_collector, MinimalBlock
+from Blockchain import data_collector, Block
 from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
 
@@ -28,9 +27,8 @@ def add_new_block(client, userdata, message):
     timestamp = received_block.pop("time")
     try:
         if gl.block_chain.blocks.__len__() == 0:
-            computed_block = MinimalBlock.MinimalChain.get_genesis_block(gl.block_chain,
-                                                                         timestamp,
-                                                                         received_block)
+            computed_block = Block.Chain.get_first_block(timestamp,
+                                                         received_block)
             gl.block_chain.blocks.append(computed_block)
         else:
             gl.block_chain.add_block(timestamp,

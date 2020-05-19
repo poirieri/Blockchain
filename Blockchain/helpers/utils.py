@@ -4,7 +4,6 @@ import random
 from bson import BSON
 from rsa import PublicKey
 from Blockchain import security, initialization, callbacks
-from Blockchain.callbacks import new_miner_status
 from Blockchain.helpers.common_topics import *
 import Blockchain.global_variables as gl
 
@@ -63,7 +62,7 @@ def choose_new_miner(client):
     except KeyError:
         pass
     except IndexError:
-        logging.error("choose_new_miner() not having anyone who ca candidate")
+        logging.error("choose_new_miner() not having anyone who can candidate")
         new_miner = gl.id_device
         client.publish(CHOOSE_MINER, new_miner)
 

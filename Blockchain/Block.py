@@ -2,17 +2,7 @@ import copy
 import hashlib
 
 
-class Buffer:
-    def __init__(self):
-        self.index = 0
-        self.timestamp = 0
-        self.data = 0
-
-    def encrypt_data(self, timestamp, data):
-        self.index = self.index + 1
-
-
-class MinimalBlock:
+class Block:
     def __init__(self, index, timestamp, data, previous_hash):
         self.index = index
         self.timestamp = timestamp
@@ -29,49 +19,50 @@ class MinimalBlock:
         return key.hexdigest()
 
     def __repr__(self) -> str:
-        return "index: " + str(self.index) + "\ntimestamp: " + self.timestamp + "\ndata: " + str(self.data) + "\nprevious hash: " \
-               + self.previous_hash + "\nhash: " + self.hash
+        return "index: " + str(self.index) + "\ntimestamp: " + self.timestamp + "\ndata: " + str(self.data) + \
+               "\nprevious hash: " + self.previous_hash + "\nhash: " + self.hash
 
 
-class MinimalChain:
+class Chain:
     def __init__(self):  # initialize when creating a chain
         self.blocks = []
 
-    def get_genesis_block(self, time, transactions):
-        return MinimalBlock(0,
-                            time,
-                            transactions,
-                            'arbitrary')
+    @staticmethod
+    def get_first_block(time, transactions):
+        return Block(0,
+                     time,
+                     transactions,
+                     'arbitrary')
 
     def add_block(self, time, data):
-        self.blocks.append(MinimalBlock(len(self.blocks),
-                                        time,
-                                        data,
-                                        self.blocks[len(self.blocks) - 1].hash))
+        self.blocks.append(Block(len(self.blocks),
+                                 time,
+                                 data,
+                                 self.blocks[len(self.blocks) - 1].hash))
 
     def get_chain_size(self):  # exclude genesis block
         return len(self.blocks) - 1
 
-    def verify(self, verbose=True):
-        flag = True
+    def verify_hash(self, verbose=True):
+        verified = True
         for i in range(1, len(self.blocks)):
             if self.blocks[i - 1].hash != self.blocks[i].previous_hash:
-                flag = False
+                verified = False
                 if verbose:
                     print(f'Wrong previous hash at block {i}.')
             if self.blocks[i].hash != self.blocks[i].hashing():
-                flag = False
+                verified = False
                 if verbose:
                     print(f'Wrong hash at block {i}.')
             if self.blocks[i - 1].timestamp >= self.blocks[i].timestamp:
-                flag = False
+                verified = False
                 if verbose:
                     print(f'Backdating at block {i}.')
-            return flag
+            return verified
 
     def fork(self, head='latest'):
         if head in ['latest', 'whole', 'all']:
-            return copy.deepcopy(self)  # deepcopy since they are mutable
+            return copy.deepcopy(self)
         else:
             c = copy.deepcopy(self)
             c.blocks = c.blocks[0:head + '1']
@@ -83,5 +74,3 @@ class MinimalChain:
             if self.blocks[i] != chain_2.blocks[i]:
                 return self.fork(i - 1)
         return self.fork(min_chain_size)
-
-

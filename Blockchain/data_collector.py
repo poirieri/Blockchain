@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import logging
 import time
 from random import randint
 from Blockchain import security, initialization
