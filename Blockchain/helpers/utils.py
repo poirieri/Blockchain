@@ -4,7 +4,7 @@ import random
 from bson import BSON
 from rsa import PublicKey
 from Blockchain import security, initialization, callbacks
-from Blockchain.helpers.common_topics import *
+import Blockchain.helpers.common_topics as ct
 import Blockchain.global_variables as gl
 
 MINIMUM_TRUST_VALUE = 10
@@ -27,29 +27,29 @@ def on_message(client, userdata, msg):
 
 
 def subscribe_topics(client):
-    client.subscribe(NEW_DEVICE_INFO)
-    client.subscribe(NEW_DEVICE_INFO_RESPOND)
-    client.subscribe(SEND_ENCRYPTED_MESSAGE)
-    client.subscribe(RESPOND_WITH_OWN_TRUST_RATE)
-    client.subscribe(FALSE_VALIDATION)
-    client.subscribe(CORRECT_VALIDATION)
-    client.subscribe(NEW_BLOCK)
-    client.subscribe(CHOOSE_MINER)
-    client.subscribe(NEW_DEVICE_TRUST_RATE)
-    client.subscribe(DEVICE_OFFLINE)
+    client.subscribe(ct.NEW_DEVICE_INFO)
+    client.subscribe(ct.NEW_DEVICE_INFO_RESPOND)
+    client.subscribe(ct.SEND_ENCRYPTED_MESSAGE)
+    client.subscribe(ct.RESPOND_WITH_OWN_TRUST_RATE)
+    client.subscribe(ct.FALSE_VALIDATION)
+    client.subscribe(ct.CORRECT_VALIDATION)
+    client.subscribe(ct.NEW_BLOCK)
+    client.subscribe(ct.CHOOSE_MINER)
+    client.subscribe(ct.NEW_DEVICE_TRUST_RATE)
+    client.subscribe(ct.DEVICE_OFFLINE)
 
 
 def add_callbacks(client):
-    client.message_callback_add(NEW_BLOCK, callbacks.add_new_block)
-    client.message_callback_add(RESPOND_WITH_OWN_TRUST_RATE, callbacks.add_trust_rate_to_store)
-    client.message_callback_add(NEW_DEVICE_INFO, callbacks.add_device_info_to_store)
-    client.message_callback_add(SEND_ENCRYPTED_MESSAGE, callbacks.receive_encrypted_block)
-    client.message_callback_add(CORRECT_VALIDATION, callbacks.add_trust_value)
-    client.message_callback_add(FALSE_VALIDATION, callbacks.decrement_trust_value)
-    client.message_callback_add(NEW_DEVICE_INFO_RESPOND, callbacks.receive_and_send_device_info)
-    client.message_callback_add(NEW_DEVICE_TRUST_RATE, callbacks.receive_and_send_trust_rate)
-    client.message_callback_add(DEVICE_OFFLINE, callbacks.delete_device)
-    client.message_callback_add(CHOOSE_MINER, callbacks.new_miner_status)
+    client.message_callback_add(ct.NEW_BLOCK, callbacks.add_new_block)
+    client.message_callback_add(ct.RESPOND_WITH_OWN_TRUST_RATE, callbacks.add_trust_rate_to_store)
+    client.message_callback_add(ct.NEW_DEVICE_INFO, callbacks.add_device_info_to_store)
+    client.message_callback_add(ct.SEND_ENCRYPTED_MESSAGE, callbacks.receive_and_send_encrypted_block)
+    client.message_callback_add(ct.CORRECT_VALIDATION, callbacks.add_trust_value)
+    client.message_callback_add(ct.FALSE_VALIDATION, callbacks.decrement_trust_value)
+    client.message_callback_add(ct.NEW_DEVICE_INFO_RESPOND, callbacks.receive_and_send_device_info)
+    client.message_callback_add(ct.NEW_DEVICE_TRUST_RATE, callbacks.receive_and_send_trust_rate)
+    client.message_callback_add(ct.DEVICE_OFFLINE, callbacks.delete_device)
+    client.message_callback_add(ct.CHOOSE_MINER, callbacks.new_miner_status)
 
 
 def choose_new_miner(client):
@@ -58,20 +58,20 @@ def choose_new_miner(client):
         logging.debug("Devices suitable for mining blocks:" + str(could_be_miner))
         new_miner = random.choice(list(could_be_miner.keys()))
         logging.debug("Device chosen to mine next block: " + str(new_miner))
-        client.publish(CHOOSE_MINER, new_miner, qos=2)
+        client.publish(ct.CHOOSE_MINER, new_miner, qos=2)
     except KeyError:
         pass
     except IndexError:
         logging.error("choose_new_miner() not having anyone who can candidate")
         new_miner = gl.id_device
-        client.publish(CHOOSE_MINER, new_miner)
+        client.publish(ct.CHOOSE_MINER, new_miner)
 
 
 def update_list_devices(new_device_info):
     if list(filter(lambda x: x.id == new_device_info['id'], gl.list_devices)).__len__() == 0:
         gl.list_devices.append(
             initialization.DeviceInfo(new_device_info['id'], new_device_info['mac_address'],
-                                      "client/" + str(new_device_info['id']),
+                                      ct.CLIENT + str(new_device_info['id']),
                                       new_device_info['public_key_e'], new_device_info['public_key_n']))
         logging.debug("List device updated: " + str(new_device_info))
 
@@ -102,10 +102,20 @@ def validate_blocks(client, validated_blocks):
         if find_mac_address(i['id']) == i['mac'] and decrypted_message_verification:
             new_block.update({str(iterator): i})
             iterator += 1
-            client.publish(CORRECT_VALIDATION, i['id'], qos=2)
+            client.publish(ct.CORRECT_VALIDATION, i['id'], qos=2)
         else:
-            client.publish(FALSE_VALIDATION, i['id'], qos=2)
+            client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
             logging.debug("fake block: " + i['id'])
             return
     new_block.update({"time": str(datetime.datetime.now())[:19]})
-    client.publish(NEW_BLOCK, BSON.encode(new_block), qos=2)
+    return new_block
+
+
+
+
+def send_block(client, block):
+    try:
+        logging.debug("data send - send_block()")
+        client.publish(ct.SEND_ENCRYPTED_MESSAGE, block)
+    except ConnectionError:
+        logging.error(ConnectionError, "Error send_block")

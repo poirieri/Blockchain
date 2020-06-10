@@ -2,9 +2,9 @@ import json
 import logging
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
-from Blockchain import security
 import Blockchain.helpers.utils as utils
 import Blockchain.global_variables as gl
+import Blockchain.helpers.common_topics as ct
 
 
 class DeviceInfo:
@@ -26,43 +26,33 @@ def configure_client(id_device, is_miner, mac_address, keys):
                           "priv_key": keys[1],
                           })
     client.on_connect = utils.on_connect
-    client.will_set(utils.DEVICE_OFFLINE, payload=id_device, qos=0, retain=True)
+    client.will_set(ct.DEVICE_OFFLINE, payload=id_device, qos=0, retain=True)
     client.on_message = utils.on_message
-    client.connect("localhost", 1883, 60)
+    client.connect(gl.host, gl.port, keepalive=60)
     return client
 
 
-def configure_keys():
-    keys = security.generate_keys()
-    return keys
-
-
-# TODO userdata.set(device_info) instead of separate params
-
 def prepare_device_info(keys, id_device, mac_address):
-    topic = "client/" + str(id_device)
+    topic = ct.CLIENT + str(id_device)
     device_info = DeviceInfo(id_device, mac_address, topic, keys[0]['e'], keys[0]['n'])
     return device_info
 
 
-def send_device_info(client, keys, device_id, mac_address, trust_rate):
+def send_device_info(keys, device_id, mac_address, trust_rate):
     try:
-        json_string = json.dumps(prepare_device_info(keys, device_id, mac_address).__dict__)
-        gl.list_devices.append(prepare_device_info(keys, device_id, mac_address))
+        device_info = prepare_device_info(keys, device_id, mac_address)
+        json_device_info = json.dumps(device_info.__dict__)
+        gl.list_devices.append(device_info)
         logging.debug("Current list of devices: " + gl.list_devices.__repr__())
-        gl.trusted_devices.update({str(device_id): trust_rate})
-        msgs = [(utils.NEW_DEVICE_INFO_RESPOND, json_string, 2, True),
-                (utils.NEW_DEVICE_TRUST_RATE, json.dumps({str(device_id): trust_rate}),
-                 2, True)]
+        device_trust_rate = {str(device_id): trust_rate}
+        gl.trusted_devices.update(device_trust_rate)
+        msgs = [(ct.NEW_DEVICE_INFO_RESPOND, json_device_info, 2, True),
+                (ct.NEW_DEVICE_TRUST_RATE, json.dumps(device_trust_rate), 2, True)]
+
         publish.multiple(msgs)
 
     except ConnectionError:
-        logging.debug(ConnectionError + "Error send_device_info()")
+        logging.error(ConnectionError, "Error send_device_info()")
 
 
-def send_block(client, block):
-    try:
-        logging.debug("data send - send_block()")
-        client.publish(utils.SEND_ENCRYPTED_MESSAGE, block)
-    except ConnectionError:
-        logging.debug(ConnectionError + "Error send_block")
+

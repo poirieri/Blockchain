@@ -6,8 +6,10 @@ import Blockchain.helpers.utils as utils
 from Blockchain import data_collector, Block
 from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
+import Blockchain.helpers.common_topics as ct
 
 MAX_BLOCKS = 3
+MINIMUM_NODES = 2
 
 
 def add_new_block(client, userdata, message):
@@ -35,11 +37,11 @@ def add_new_block(client, userdata, message):
                                      received_block)
             computed_block = gl.block_chain.blocks[-1]
         logging.debug("New block mined!\n")
-        if gl.is_miner is True:  # to be commented
+        if gl.is_miner:  # to be commented
             add_to_db(computed_block)
         del computed_block
     except KeyError:
-        logging.debug("Error in add_new_block()")
+        logging.error("Error in add_new_block()")
         time.sleep(5)
     data_collector.prepare_transactions_block(client,
                                               userdata.get("priv_key"),
@@ -47,11 +49,11 @@ def add_new_block(client, userdata, message):
                                               userdata.get("mac_address"))
 
 
-def receive_encrypted_block(client, userdata, message):
+def receive_and_send_encrypted_block(client, userdata, message):
     """Callback for SEND_ENCRYPTED_MESSAGE
     Takes place when a piece of data is sent to other devices to become a part of currently mined block
     It appends to a list temporary_blocks and when a specific number of blocks are received, miner can start validating
-    each of them.
+    each of them. After validation miner publishes new block.
     message.payload = {
                         "id": str,
                         "mac": str,
@@ -61,9 +63,10 @@ def receive_encrypted_block(client, userdata, message):
                         """
     received_encrypted_block = BSON.decode(message.payload)
     gl.temporary_blocks.append(received_encrypted_block)
-    if gl.temporary_blocks.__len__() == MAX_BLOCKS and gl.is_miner is True:
+    if gl.temporary_blocks.__len__() == MAX_BLOCKS and gl.is_miner:
         try:
-            utils.validate_blocks(client, gl.temporary_blocks)
+            validated_block = utils.validate_blocks(client, gl.temporary_blocks)
+            client.publish(ct.NEW_BLOCK, BSON.encode(validated_block), qos=2)
             gl.temporary_blocks.clear()
             utils.choose_new_miner(client)
         except KeyError:
@@ -82,7 +85,7 @@ def add_trust_rate_to_store(client, userdata, message):
         new_device_trust_rate = json.loads(message.payload)
         gl.trusted_devices.update(new_device_trust_rate)
     except KeyError:
-        logging.debug("Error in add_trust_rate_to_store()")
+        logging.error("Error in add_trust_rate_to_store()")
 
 
 def add_trust_value(client, userdata, message):
@@ -97,7 +100,7 @@ def add_trust_value(client, userdata, message):
         gl.trusted_devices.update({id_good_device: trust_value})
         logging.debug("Trust rate updated: " + str({id_good_device: trust_value}))
     except TypeError:
-        logging.debug("Error in add_trust_value()")
+        logging.error("Error in add_trust_value()")
 
 
 def decrement_trust_value(client, userdata, message):
@@ -112,7 +115,7 @@ def decrement_trust_value(client, userdata, message):
         gl.trusted_devices.update({id_bad_device: trust_value})
         logging.debug("Trust rate updated: " + str({id_bad_device: trust_value}))
     except TypeError:
-        logging.debug("Error in decrement_trust_value()")
+        logging.error("Error in decrement_trust_value()")
 
 
 def new_miner_status(client, userdata, message):
@@ -137,11 +140,10 @@ def add_device_info_to_store(client, userdata, message):
                         }
     """
     try:
-        print("add_device_info_to_store")
         new_device_info = json.loads(message.payload)
         utils.update_list_devices(new_device_info)
     except KeyError:
-        logging.debug("Error in add_device_info_to_store()")
+        logging.error("Error in add_device_info_to_store()")
 
 
 def receive_and_send_device_info(client, userdata, message):
@@ -159,12 +161,11 @@ def receive_and_send_device_info(client, userdata, message):
         received_device_info = json.loads(message.payload)
         if received_device_info['id'] != userdata.get('id_device'):
             utils.update_list_devices(received_device_info)
-            print("receive_and_send_device_info")
             logging.debug("Updated device list with: " + received_device_info.__repr__())
             logging.debug("Updated device list: " + str(gl.list_devices))
-            client.publish(utils.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
+            client.publish(ct.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     except KeyError:
-        logging.debug("Error in receive_and_send_device_info()")
+        logging.error("Error in receive_and_send_device_info()")
 
 
 def receive_and_send_trust_rate(client, userdata, message):
@@ -178,13 +179,20 @@ def receive_and_send_trust_rate(client, userdata, message):
         gl.trusted_devices.update(received_trust_rate)
         logging.debug("Updated trust list with: " + str(received_trust_rate))
         logging.debug("Current trust list: " + str(gl.trusted_devices))
-        client.publish(utils.RESPOND_WITH_OWN_TRUST_RATE,
-                       json.dumps({userdata.get("id_device"): int(
-                           gl.trusted_devices.get(userdata.get("id_device")))}), qos=2)
-        if gl.trusted_devices.__len__() > 2 and gl.list_devices.__len__() > 2:  # TODO change to default value
-            data_collector.prepare_transactions_block(client, gl.keys[1], gl.id_device, gl.mac_address)
+        own_trust_rate = {
+            userdata.get("id_device"): int(gl.trusted_devices.get(userdata.get("id_device")))
+        }
+        client.publish(ct.RESPOND_WITH_OWN_TRUST_RATE, json.dumps(own_trust_rate), qos=2)
+
+        if gl.trusted_devices.__len__() > MINIMUM_NODES and gl.list_devices.__len__() > MINIMUM_NODES:
+            data_to_send = data_collector.prepare_transactions_block(client,
+                                                                     userdata.get("priv_key"),
+                                                                     userdata.get("id_device"),
+                                                                     userdata.get("mac_address"))
+            utils.send_block(client, BSON.encode(data_to_send))
+
     except KeyError:
-        logging.debug("Error in receive_and_send_trust_rate()")
+        logging.error("Error in receive_and_send_trust_rate()")
 
 
 def delete_device(client, userdata, message):

@@ -43,22 +43,22 @@ class Chain:
     def get_chain_size(self):  # exclude genesis block
         return len(self.blocks) - 1
 
-    def verify_hash(self, verbose=True):
-        verified = True
-        for i in range(1, len(self.blocks)):
-            if self.blocks[i - 1].hash != self.blocks[i].previous_hash:
-                verified = False
-                if verbose:
-                    print(f'Wrong previous hash at block {i}.')
-            if self.blocks[i].hash != self.blocks[i].hashing():
-                verified = False
-                if verbose:
-                    print(f'Wrong hash at block {i}.')
-            if self.blocks[i - 1].timestamp >= self.blocks[i].timestamp:
-                verified = False
-                if verbose:
-                    print(f'Backdating at block {i}.')
-            return verified
+    # def verify_hash(self, verbose=True):
+    #     verified = True
+    #     for i in range(1, len(self.blocks)):
+    #         if self.blocks[i - 1].hash != self.blocks[i].previous_hash:
+    #             verified = False
+    #             if verbose:
+    #                 print(f'Wrong previous hash at block {i}.')
+    #         if self.blocks[i].hash != self.blocks[i].hashing():
+    #             verified = False
+    #             if verbose:
+    #                 print(f'Wrong hash at block {i}.')
+    #         if self.blocks[i - 1].timestamp >= self.blocks[i].timestamp:
+    #             verified = False
+    #             if verbose:
+    #                 print(f'Backdating at block {i}.')
+    #         return verified
 
     def fork(self, head='latest'):
         if head in ['latest', 'whole', 'all']:
@@ -66,7 +66,6 @@ class Chain:
         else:
             c = copy.deepcopy(self)
             c.blocks = c.blocks[0:head + '1']
-            return
 
     def get_root(self, chain_2):
         min_chain_size = min(self.get_chain_size(), chain_2.get_chain_size())

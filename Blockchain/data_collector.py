@@ -2,8 +2,7 @@ import asyncio
 import datetime
 import time
 from random import randint
-from Blockchain import security, initialization
-from bson import BSON
+from Blockchain import security
 import Blockchain.global_variables as gl
 
 
@@ -34,5 +33,5 @@ def prepare_transactions_block(client, private_key, id_device, mac_address):
         "signature": signature,
         "transactions": list_to_str
         }
-    initialization.send_block(client, BSON.encode(data_set))
+    return data_set
 

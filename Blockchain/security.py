@@ -5,8 +5,8 @@ def generate_keys():
     """Generate pair of keys
     :return: generated pair of keys.
     """
-    (pubKey, privKey) = rsa.newkeys(512)
-    return pubKey, privKey
+    (public_key, private_key) = rsa.newkeys(512)
+    return public_key, private_key
 
 
 def import_keys(private_key_directory):
@@ -65,3 +65,7 @@ def verify_message(data, signature, public_key):
         return True
     except rsa.pkcs1.VerificationError:
         return False
+
+
+def configure_keys():
+    return generate_keys()
