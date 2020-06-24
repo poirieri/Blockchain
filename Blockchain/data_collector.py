@@ -8,7 +8,7 @@ import Blockchain.global_variables as gl
 
 async def transaction():
     """Append transactions list."""
-    gl.transactions.append("data collection" + str(datetime.datetime.now()))
+    gl.transactions.append("Temperatura: 24,5 °C")
     time.sleep(randint(0, 10))
 
 

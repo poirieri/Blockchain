@@ -9,7 +9,7 @@ def connect_to_db():
     :return: created collection
     """
     try:
-        conn = MongoClient()
+        conn = MongoClient("192.168.0.206", 27017)
         logging.debug("Connected successfully!!!")
     except ConnectionFailure:
         logging.debug("Could not connect to MongoDB")

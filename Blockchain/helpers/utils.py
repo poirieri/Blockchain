@@ -15,8 +15,9 @@ def on_connect(client, userdata, flags, rc):
     reconnect then subscriptions will be renewed.
     """
     logging.debug("Connected with result code "+str(rc))
-    subscribe_topics(client)
-    add_callbacks(client)
+    if rc == 0:
+        subscribe_topics(client)
+        add_callbacks(client)
 
 
 def on_message(client, userdata, msg):
@@ -109,8 +110,6 @@ def validate_blocks(client, validated_blocks):
             return
     new_block.update({"time": str(datetime.datetime.now())[:19]})
     return new_block
-
-
 
 
 def send_block(client, block):

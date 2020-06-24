@@ -43,10 +43,11 @@ def add_new_block(client, userdata, message):
     except KeyError:
         logging.error("Error in add_new_block()")
         time.sleep(5)
-    data_collector.prepare_transactions_block(client,
+    new_data_set = data_collector.prepare_transactions_block(client,
                                               userdata.get("priv_key"),
                                               userdata.get("id_device"),
                                               userdata.get("mac_address"))
+    utils.send_block(client, BSON.encode(new_data_set))
 
 
 def receive_and_send_encrypted_block(client, userdata, message):
