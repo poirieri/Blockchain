@@ -4,13 +4,13 @@ import time
 from random import randint
 from Blockchain import security
 import Blockchain.global_variables as gl
-
+import psutil
 
 async def transaction():
     """Append transactions list."""
-    x = randint(5, 15)
-    gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Temperatura: 24," + x + " °C")
-    # gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Wilgotność: 49%")
+    x = randint(5, 9)
+    # gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Temperatura: 24," + x + " °C")
+    gl.transactions.append("str(datetime.datetime.now())[:19] Stan baterii: " + str(psutil.sensors_battery()))
     # gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Ciśnienie: 1019 hPa")oki
     time.sleep(x)
 
