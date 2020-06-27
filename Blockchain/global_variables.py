@@ -14,6 +14,7 @@ trusted_devices = {}
 is_miner = bool(int(sys.argv[1]))
 is_debug = str(sys.argv[2])
 host = "192.168.0.206" #str(sys.argv[3])
+# host = "localhost"
 port = 1883 #int(sys.argv[4])
 mac_address = hex(uuid.getnode())
 trust_rate = 10 if is_miner else 0

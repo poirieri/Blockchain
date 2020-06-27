@@ -72,7 +72,6 @@ def update_list_devices(new_device_info):
     if list(filter(lambda x: x.id == new_device_info['id'], gl.list_devices)).__len__() == 0:
         gl.list_devices.append(
             initialization.DeviceInfo(new_device_info['id'], new_device_info['mac_address'],
-                                      ct.CLIENT + str(new_device_info['id']),
                                       new_device_info['public_key_e'], new_device_info['public_key_n']))
         logging.debug("List device updated: " + str(new_device_info))
 

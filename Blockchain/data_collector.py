@@ -8,13 +8,16 @@ import Blockchain.global_variables as gl
 
 async def transaction():
     """Append transactions list."""
-    gl.transactions.append("Temperatura: 24,5 °C")
-    time.sleep(randint(0, 10))
+    x = randint(5, 15)
+    gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Temperatura: 24," + x + " °C")
+    # gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Wilgotność: 49%")
+    # gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Ciśnienie: 1019 hPa")oki
+    time.sleep(x)
 
 
 async def gather_transactions(client):
     """Gather transactions in transaction list."""
-    return await asyncio.gather(transaction(), transaction(), transaction())
+    return await asyncio.gather(transaction())
 
 
 def prepare_transactions_block(client, private_key, id_device, mac_address):
