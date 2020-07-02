@@ -15,10 +15,10 @@ class DeviceInfo:
         self.public_key_n = public_key_n
 
     def __repr__(self) -> str:
-        return "ID: " + self.id + ", mac address: " + self.mac_address + " ;"
+        return "ID: " + self.id + ",se mac address: " + self.mac_address + " ;"
 
 
-def connect_client(id_device, is_miner, mac_address, keys):
+def connect_client(id_device, mac_address, keys):
     client = mqtt.Client(clean_session=True)
     client.user_data_set({"id_device": id_device,
                           "mac_address": mac_address,

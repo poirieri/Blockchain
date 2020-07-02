@@ -73,7 +73,7 @@ def update_list_devices(new_device_info):
         gl.list_devices.append(
             initialization.DeviceInfo(new_device_info['id'], new_device_info['mac_address'],
                                       new_device_info['public_key_e'], new_device_info['public_key_n']))
-        logging.debug("List device updated: " + str(new_device_info))
+        logging.debug("List device updated: " + str(new_device_info))\
 
 
 def find_device_public_key(id_device):

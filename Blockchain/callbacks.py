@@ -27,6 +27,7 @@ def add_new_block(client, userdata, message):
 
     received_block = BSON.decode(message.payload)
     timestamp = received_block.pop("time")
+    computed_block = []
     try:
         if gl.block_chain.blocks.__len__() == 0:
             computed_block = Block.Chain.get_first_block(timestamp,
@@ -39,6 +40,7 @@ def add_new_block(client, userdata, message):
         logging.debug("New block mined!\n")
         if gl.is_miner:  # to be commented
             add_to_db(computed_block)
+            utils.choose_new_miner(client)
         del computed_block
     except KeyError:
         logging.error("Error in add_new_block()")
@@ -69,7 +71,6 @@ def receive_and_send_encrypted_block(client, userdata, message):
             validated_block = utils.validate_blocks(client, gl.temporary_blocks)
             client.publish(ct.NEW_BLOCK, BSON.encode(validated_block), qos=2)
             gl.temporary_blocks.clear()
-            utils.choose_new_miner(client)
         except KeyError:
             logging.debug("Error in receive_encrypted_block()")
         except AttributeError:
@@ -89,7 +90,7 @@ def add_trust_rate_to_store(client, userdata, message):
         logging.error("Error in add_trust_rate_to_store()")
 
 
-def add_trust_value(client, userdata, message):
+def increment_trust_value(client, userdata, message):
     """Callback for CORRECT_VALIDATION
     message.payload - device_id of device with good behaviour
     It searches for device_id in trusted deviced dictionary and increments it by 1
@@ -167,7 +168,6 @@ def receive_and_send_device_info(client, userdata, message):
             client.publish(ct.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     except KeyError:
         logging.error("Error in receive_and_send_device_info()")
-
 
 def receive_and_send_trust_rate(client, userdata, message):
     """Callback for NEW_DEVICE_TRUST_RATE
