@@ -5,12 +5,16 @@ from random import randint
 from Blockchain import security
 import Blockchain.global_variables as gl
 import psutil
+import json
+
 
 async def transaction():
     """Append transactions list."""
-    x = randint(5, 9)
+    x = 5
     # gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Temperatura: 24," + x + " °C")
-    gl.transactions.append("str(datetime.datetime.now())[:19] Stan baterii: " + str(psutil.sensors_battery()))
+    gl.transactions.append({"Name": "Stan baterii",
+                           "Date": str(datetime.datetime.now())[:19],
+                           "Value": str(psutil.sensors_battery().percent)})
     # gl.transactions.append("Data: str(datetime.datetime.now())[:19]" + "Ciśnienie: 1019 hPa")oki
     time.sleep(x)
 
@@ -28,7 +32,7 @@ def prepare_transactions_block(client, private_key, id_device, mac_address):
     :param mac_address:
     """
     asyncio.run(gather_transactions(client))
-    list_to_str = ';'.join(map(str, gl.transactions))
+    list_to_str = json.dumps(gl.transactions)
     signature = security.sign_message(list_to_str, private_key)
     data_set = {
         "id": id_device,

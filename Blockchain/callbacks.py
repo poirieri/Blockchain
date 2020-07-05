@@ -44,12 +44,6 @@ def add_new_block(client, userdata, message):
         del computed_block
     except KeyError:
         logging.error("Error in add_new_block()")
-        time.sleep(5)
-    new_data_set = data_collector.prepare_transactions_block(client,
-                                              userdata.get("priv_key"),
-                                              userdata.get("id_device"),
-                                              userdata.get("mac_address"))
-    utils.send_block(client, BSON.encode(new_data_set))
 
 
 def receive_and_send_encrypted_block(client, userdata, message):
@@ -66,7 +60,7 @@ def receive_and_send_encrypted_block(client, userdata, message):
                         """
     received_encrypted_block = BSON.decode(message.payload)
     gl.temporary_blocks.append(received_encrypted_block)
-    if gl.temporary_blocks.__len__() == MAX_BLOCKS and gl.is_miner:
+    if gl.temporary_blocks.__len__() >= MAX_BLOCKS and gl.is_miner:
         try:
             validated_block = utils.validate_blocks(client, gl.temporary_blocks)
             client.publish(ct.NEW_BLOCK, BSON.encode(validated_block), qos=2)
@@ -126,6 +120,9 @@ def new_miner_status(client, userdata, message):
     """
     try:
         gl.is_miner = True if str(message.payload, "UTF-8") == userdata.get("id_device") else False
+        if gl.trusted_devices.__len__() > MINIMUM_NODES and gl.list_devices.__len__() > MINIMUM_NODES and gl.is_miner:
+            client.publish(ct.START_COLLECTING, qos=2)
+            print("new miner chosen")
     except KeyError:
         logging.debug("Error in new_miner_status()")
 
@@ -169,6 +166,7 @@ def receive_and_send_device_info(client, userdata, message):
     except KeyError:
         logging.error("Error in receive_and_send_device_info()")
 
+
 def receive_and_send_trust_rate(client, userdata, message):
     """Callback for NEW_DEVICE_TRUST_RATE
     Takes place when a message with trust rate value is received from other device.
@@ -184,14 +182,8 @@ def receive_and_send_trust_rate(client, userdata, message):
             userdata.get("id_device"): int(gl.trusted_devices.get(userdata.get("id_device")))
         }
         client.publish(ct.RESPOND_WITH_OWN_TRUST_RATE, json.dumps(own_trust_rate), qos=2)
-
-        if gl.trusted_devices.__len__() > MINIMUM_NODES and gl.list_devices.__len__() > MINIMUM_NODES:
-            data_to_send = data_collector.prepare_transactions_block(client,
-                                                                     userdata.get("priv_key"),
-                                                                     userdata.get("id_device"),
-                                                                     userdata.get("mac_address"))
-            utils.send_block(client, BSON.encode(data_to_send))
-
+        if gl.trusted_devices.__len__() > MINIMUM_NODES and gl.list_devices.__len__() > MINIMUM_NODES and gl.is_miner:
+            client.publish(ct.START_COLLECTING, qos=2)
     except KeyError:
         logging.error("Error in receive_and_send_trust_rate()")
 

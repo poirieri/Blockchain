@@ -3,10 +3,9 @@ import logging
 import random
 from bson import BSON
 from rsa import PublicKey
-from Blockchain import security, initialization, callbacks
+from Blockchain import security, initialization, callbacks, data_collector
 import Blockchain.helpers.common_topics as ct
 import Blockchain.global_variables as gl
-
 MINIMUM_TRUST_VALUE = 10
 
 
@@ -25,6 +24,12 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
     if msg.retain == 1:
         print("This is a retained message")
+    if msg.topic == ct.START_COLLECTING:
+        data_to_send = data_collector.prepare_transactions_block(client,
+                                                                 userdata.get("priv_key"),
+                                                                 userdata.get("id_device"),
+                                                                 userdata.get("mac_address"))
+        send_block(client, BSON.encode(data_to_send))
 
 
 def subscribe_topics(client):
@@ -38,6 +43,7 @@ def subscribe_topics(client):
     client.subscribe(ct.CHOOSE_MINER)
     client.subscribe(ct.NEW_DEVICE_TRUST_RATE)
     client.subscribe(ct.DEVICE_OFFLINE)
+    client.subscribe(ct.START_COLLECTING)
 
 
 def add_callbacks(client):
@@ -45,7 +51,7 @@ def add_callbacks(client):
     client.message_callback_add(ct.RESPOND_WITH_OWN_TRUST_RATE, callbacks.add_trust_rate_to_store)
     client.message_callback_add(ct.NEW_DEVICE_INFO, callbacks.add_device_info_to_store)
     client.message_callback_add(ct.SEND_ENCRYPTED_MESSAGE, callbacks.receive_and_send_encrypted_block)
-    client.message_callback_add(ct.CORRECT_VALIDATION, callbacks.add_trust_value)
+    client.message_callback_add(ct.CORRECT_VALIDATION, callbacks.increment_trust_value)
     client.message_callback_add(ct.FALSE_VALIDATION, callbacks.decrement_trust_value)
     client.message_callback_add(ct.NEW_DEVICE_INFO_RESPOND, callbacks.receive_and_send_device_info)
     client.message_callback_add(ct.NEW_DEVICE_TRUST_RATE, callbacks.receive_and_send_trust_rate)
@@ -73,7 +79,7 @@ def update_list_devices(new_device_info):
         gl.list_devices.append(
             initialization.DeviceInfo(new_device_info['id'], new_device_info['mac_address'],
                                       new_device_info['public_key_e'], new_device_info['public_key_n']))
-        logging.debug("List device updated: " + str(new_device_info))\
+        logging.debug("List device updated: " + str(new_device_info))
 
 
 def find_device_public_key(id_device):
