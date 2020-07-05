@@ -71,7 +71,7 @@ def choose_new_miner(client):
     except IndexError:
         logging.error("choose_new_miner() not having anyone who can candidate")
         new_miner = gl.id_device
-        client.publish(ct.CHOOSE_MINER, new_miner)
+        client.publish(ct.CHOOSE_MINER, new_miner, qos=2)
 
 
 def update_list_devices(new_device_info):
