@@ -27,8 +27,8 @@ def add_new_block(client, userdata, message):
 
     received_block = BSON.decode(message.payload)
     timestamp = received_block.pop("time")
-    computed_block = []
     try:
+        computed_block = []
         if gl.block_chain.blocks.__len__() == 0:
             computed_block = Block.Chain.get_first_block(timestamp,
                                                          received_block)
@@ -42,6 +42,7 @@ def add_new_block(client, userdata, message):
             add_to_db(computed_block)
             utils.choose_new_miner(client)
         del computed_block
+        gl.temporary_blocks.clear()
     except KeyError:
         logging.error("Error in add_new_block()")
 
@@ -64,7 +65,6 @@ def receive_and_send_encrypted_block(client, userdata, message):
         try:
             validated_block = utils.validate_blocks(client, gl.temporary_blocks)
             client.publish(ct.NEW_BLOCK, BSON.encode(validated_block), qos=2)
-            gl.temporary_blocks.clear()
         except KeyError:
             logging.debug("Error in receive_encrypted_block()")
         except AttributeError:
