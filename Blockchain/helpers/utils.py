@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import random
 from bson import BSON
@@ -102,10 +103,16 @@ def validate_blocks(client, validated_blocks):
     iterator = 0
     new_block = dict()
     for i in validated_blocks:
-        decrypted_message_verification = security.verify_message(i['transactions'].encode(),
+        try:
+            decrypted_message_verification = security.verify_message(i['transactions'].encode(),
                                                                  i['signature'],
                                                                  find_device_public_key(i['id']))
+        except KeyError:
+            client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
+            logging.debug("fake signature: " + i['id'])
+            validated_blocks.pop(i)
         if find_mac_address(i['id']) == i['mac'] and decrypted_message_verification:
+            i['transactions'] = json.loads(i['transactions'])
             new_block.update({str(iterator): i})
             iterator += 1
             client.publish(ct.CORRECT_VALIDATION, i['id'], qos=2)
@@ -114,7 +121,7 @@ def validate_blocks(client, validated_blocks):
             logging.debug("fake block: " + i['id'])
             return
     new_block.update({"time": str(datetime.datetime.now())[:19]})
-    return new_block
+    return new_block #TODO try except!!!
 
 
 def send_block(client, block):
