@@ -30,7 +30,7 @@ def on_message(client, userdata, msg):
                                                                  userdata.get("priv_key"),
                                                                  userdata.get("id_device"),
                                                                  userdata.get("mac_address"))
-        send_block(client, BSON.encode(data_to_send))
+        send_block(client, json.dumps(data_to_send))
 
 
 def subscribe_topics(client):
@@ -105,7 +105,7 @@ def validate_blocks(client, validated_blocks):
     for i in validated_blocks:
         try:
             decrypted_message_verification = security.verify_message(i['transactions'].encode(),
-                                                                 i['signature'],
+                                                                 i['signature'].encode(encoding='latin1'),
                                                                  find_device_public_key(i['id']))
         except KeyError:
             client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)

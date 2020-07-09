@@ -25,7 +25,7 @@ def add_new_block(client, userdata, message):
                             "time": str(datetime.datetime.utcnow())
                             """
 
-    received_block = BSON.decode(message.payload)
+    received_block = json.loads(message.payload)
     timestamp = received_block.pop("time")
     try:
         computed_block = []
@@ -59,12 +59,12 @@ def receive_and_send_encrypted_block(client, userdata, message):
                         "transactions": [list]
                         }
                         """
-    received_encrypted_block = BSON.decode(message.payload)
+    received_encrypted_block = json.loads(message.payload)
     gl.temporary_blocks.append(received_encrypted_block)
     if gl.temporary_blocks.__len__() >= MAX_BLOCKS and gl.is_miner:
         try:
             validated_block = utils.validate_blocks(client, gl.temporary_blocks)
-            client.publish(ct.NEW_BLOCK, BSON.encode(validated_block), qos=2)
+            client.publish(ct.NEW_BLOCK, json.dumps(validated_block), qos=2)
         except KeyError:
             logging.debug("Error in receive_encrypted_block()")
         except AttributeError:

@@ -2,6 +2,9 @@ import asyncio
 import datetime
 import time
 from random import randint
+
+from bson import BSON
+
 from Blockchain import security
 import Blockchain.global_variables as gl
 import psutil
@@ -31,14 +34,17 @@ def prepare_transactions_block(client, private_key, id_device, mac_address):
     :param id_device:
     :param mac_address:
     """
+    gl.transactions.clear()
     asyncio.run(gather_transactions(client))
     list_to_str = json.dumps(gl.transactions)
     signature = security.sign_message(list_to_str, private_key)
     data_set = {
         "id": id_device,
         "mac": mac_address,
-        "signature": signature,
+        "signature": signature.decode(encoding='latin1'),
         "transactions": list_to_str
         }
     return data_set
 
+# b = signature.decode(encoding='latin1')
+# c = b.encode(encoding='latin1')
