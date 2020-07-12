@@ -8,8 +8,8 @@ from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
 import Blockchain.helpers.common_topics as ct
 
-MAX_BLOCKS = 3
-MINIMUM_NODES = 2
+MINIMUM_TRANSACTIONS = 3
+MINIMUM_NODES = 6
 
 
 def add_new_block(client, userdata, message):
@@ -41,8 +41,15 @@ def add_new_block(client, userdata, message):
         if gl.is_miner:  # to be commented
             add_to_db(computed_block)
             utils.choose_new_miner(client)
+        count = len(computed_block.data)
+        for i in range (0, count):
+            try:
+                gl.temporary_blocks.remove(computed_block.data[str(i)])
+            except KeyError:
+                pass
+            except ValueError:
+                pass
         del computed_block
-        gl.temporary_blocks.clear()
     except KeyError:
         logging.error("Error in add_new_block()")
 
@@ -61,14 +68,12 @@ def receive_and_send_encrypted_block(client, userdata, message):
                         """
     received_encrypted_block = json.loads(message.payload)
     gl.temporary_blocks.append(received_encrypted_block)
-    if gl.temporary_blocks.__len__() >= MAX_BLOCKS and gl.is_miner:
+    if gl.temporary_blocks.__len__() >= MINIMUM_TRANSACTIONS and gl.is_miner:
         try:
             validated_block = utils.validate_blocks(client, gl.temporary_blocks)
             client.publish(ct.NEW_BLOCK, json.dumps(validated_block), qos=2)
         except KeyError:
             logging.debug("Error in receive_encrypted_block()")
-        except AttributeError:
-            logging.debug("Error  no public key- verify")
 
 
 def add_trust_rate_to_store(client, userdata, message):
@@ -120,7 +125,7 @@ def new_miner_status(client, userdata, message):
     """
     try:
         gl.is_miner = True if str(message.payload, "UTF-8") == userdata.get("id_device") else False
-        if gl.trusted_devices.__len__() > MINIMUM_NODES and gl.list_devices.__len__() > MINIMUM_NODES and gl.is_miner:
+        if gl.trusted_devices.__len__() >= MINIMUM_NODES and gl.list_devices.__len__() >= MINIMUM_NODES and gl.is_miner:
             client.publish(ct.START_COLLECTING, qos=2)
             print("new miner chosen")
     except KeyError:
@@ -178,11 +183,12 @@ def receive_and_send_trust_rate(client, userdata, message):
         gl.trusted_devices.update(received_trust_rate)
         logging.debug("Updated trust list with: " + str(received_trust_rate))
         logging.debug("Current trust list: " + str(gl.trusted_devices))
+
         own_trust_rate = {
             userdata.get("id_device"): int(gl.trusted_devices.get(userdata.get("id_device")))
         }
         client.publish(ct.RESPOND_WITH_OWN_TRUST_RATE, json.dumps(own_trust_rate), qos=2)
-        if gl.trusted_devices.__len__() > MINIMUM_NODES and gl.list_devices.__len__() > MINIMUM_NODES and gl.is_miner:
+        if gl.trusted_devices.__len__() >= MINIMUM_NODES and gl.list_devices.__len__() >= MINIMUM_NODES and gl.is_miner:
             client.publish(ct.START_COLLECTING, qos=2)
     except KeyError:
         logging.error("Error in receive_and_send_trust_rate()")

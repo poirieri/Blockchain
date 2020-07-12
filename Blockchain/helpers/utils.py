@@ -2,7 +2,8 @@ import datetime
 import json
 import logging
 import random
-from bson import BSON
+import time
+from random import randint
 from rsa import PublicKey
 from Blockchain import security, initialization, callbacks, data_collector
 import Blockchain.helpers.common_topics as ct
@@ -26,6 +27,7 @@ def on_message(client, userdata, msg):
     if msg.retain == 1:
         print("This is a retained message")
     if msg.topic == ct.START_COLLECTING:
+        time.sleep(randint(5, 60))
         data_to_send = data_collector.prepare_transactions_block(client,
                                                                  userdata.get("priv_key"),
                                                                  userdata.get("id_device"),
@@ -34,17 +36,17 @@ def on_message(client, userdata, msg):
 
 
 def subscribe_topics(client):
-    client.subscribe(ct.NEW_DEVICE_INFO)
-    client.subscribe(ct.NEW_DEVICE_INFO_RESPOND)
-    client.subscribe(ct.SEND_ENCRYPTED_MESSAGE)
-    client.subscribe(ct.RESPOND_WITH_OWN_TRUST_RATE)
-    client.subscribe(ct.FALSE_VALIDATION)
-    client.subscribe(ct.CORRECT_VALIDATION)
-    client.subscribe(ct.NEW_BLOCK)
-    client.subscribe(ct.CHOOSE_MINER)
-    client.subscribe(ct.NEW_DEVICE_TRUST_RATE)
-    client.subscribe(ct.DEVICE_OFFLINE)
-    client.subscribe(ct.START_COLLECTING)
+    client.subscribe(ct.NEW_DEVICE_INFO, qos=2)
+    client.subscribe(ct.NEW_DEVICE_INFO_RESPOND, qos=2)
+    client.subscribe(ct.SEND_ENCRYPTED_MESSAGE, qos=2)
+    client.subscribe(ct.RESPOND_WITH_OWN_TRUST_RATE, qos=2)
+    client.subscribe(ct.FALSE_VALIDATION, qos=2)
+    client.subscribe(ct.CORRECT_VALIDATION, qos=2)
+    client.subscribe(ct.NEW_BLOCK, qos=2)
+    client.subscribe(ct.CHOOSE_MINER, qos=2)
+    client.subscribe(ct.NEW_DEVICE_TRUST_RATE, qos=2)
+    client.subscribe(ct.DEVICE_OFFLINE, qos=2)
+    client.subscribe(ct.START_COLLECTING, qos=2)
 
 
 def add_callbacks(client):
@@ -104,22 +106,26 @@ def validate_blocks(client, validated_blocks):
     new_block = dict()
     for i in validated_blocks:
         try:
-            decrypted_message_verification = security.verify_message(i['transactions'].encode(),
+            decrypted_message_verification = security.verify_message((json.loads(i['transactions'])).encode(),
                                                                  i['signature'].encode(encoding='latin1'),
                                                                  find_device_public_key(i['id']))
+            if find_mac_address(i['id']) == i['mac'] and decrypted_message_verification:
+                i['transactions'] = json.loads(i['transactions'])
+                new_block.update({str(iterator): i})
+                iterator += 1
+                client.publish(ct.CORRECT_VALIDATION, i['id'], qos=2)
+                i['transactions'] = json.dumps(i['transactions'])
+            else:
+                client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
+                logging.debug("fake block: " + i['id'])
         except KeyError:
             client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
             logging.debug("fake signature: " + i['id'])
-            validated_blocks.pop(i)
-        if find_mac_address(i['id']) == i['mac'] and decrypted_message_verification:
-            i['transactions'] = json.loads(i['transactions'])
-            new_block.update({str(iterator): i})
-            iterator += 1
-            client.publish(ct.CORRECT_VALIDATION, i['id'], qos=2)
-        else:
-            client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
-            logging.debug("fake block: " + i['id'])
-            return
+            validated_blocks.remove(i)
+        except AttributeError:
+            logging.debug("Error  no public key- verify", i)
+            client.publish(ct.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
+            validated_blocks.remove(i)
     new_block.update({"time": str(datetime.datetime.now())[:19]})
     return new_block #TODO try except!!!
 
