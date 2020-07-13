@@ -26,13 +26,16 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
     if msg.retain == 1:
         print("This is a retained message")
-    if msg.topic == ct.START_COLLECTING:
-        time.sleep(randint(5, 60))
+    if msg.topic == ct.START_COLLECTING and not gl.is_miner and not gl.is_mining:
+        gl.is_mining = True
+        time.sleep(randint(5, 10))
         data_to_send = data_collector.prepare_transactions_block(client,
                                                                  userdata.get("priv_key"),
                                                                  userdata.get("id_device"),
                                                                  userdata.get("mac_address"))
         send_block(client, json.dumps(data_to_send))
+        # gl.is_mining = False
+
 
 
 def subscribe_topics(client):
@@ -106,28 +109,25 @@ def validate_blocks(client, validated_blocks):
     new_block = dict()
     for i in validated_blocks:
         try:
-            decrypted_message_verification = security.verify_message((json.loads(i['transactions'])).encode(),
+            decrypted_message_verification = security.verify_message((i['transactions']).encode(),
                                                                  i['signature'].encode(encoding='latin1'),
                                                                  find_device_public_key(i['id']))
             if find_mac_address(i['id']) == i['mac'] and decrypted_message_verification:
-                i['transactions'] = json.loads(i['transactions'])
                 new_block.update({str(iterator): i})
                 iterator += 1
                 client.publish(ct.CORRECT_VALIDATION, i['id'], qos=2)
-                i['transactions'] = json.dumps(i['transactions'])
             else:
                 client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
                 logging.debug("fake block: " + i['id'])
         except KeyError:
             client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
             logging.debug("fake signature: " + i['id'])
-            validated_blocks.remove(i)
         except AttributeError:
             logging.debug("Error  no public key- verify", i)
             client.publish(ct.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
-            validated_blocks.remove(i)
+    validated_blocks.clear()
     new_block.update({"time": str(datetime.datetime.now())[:19]})
-    return new_block #TODO try except!!!
+    return new_block
 
 
 def send_block(client, block):

@@ -57,6 +57,7 @@ async def transaction():
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
 
+
 async def gather_transactions(client):
     """Gather transactions in transaction list."""
     return await asyncio.gather(transaction())
@@ -77,9 +78,7 @@ def prepare_transactions_block(client, private_key, id_device, mac_address):
         "id": id_device,
         "mac": mac_address,
         "signature": signature.decode(encoding='latin1'),
-        "transactions": json.dumps(transaction)
+        "transactions": transaction
         }
     return data_set
 
-# b = signature.decode(encoding='latin1')
-# c = b.encode(encoding='latin1')

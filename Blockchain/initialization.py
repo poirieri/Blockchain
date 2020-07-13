@@ -46,13 +46,8 @@ def send_device_info(client, keys, device_id, mac_address, trust_rate):
         logging.debug("Current list of devices: " + gl.list_devices.__repr__())
         device_trust_rate = {str(device_id): trust_rate}
         gl.trusted_devices.update(device_trust_rate)
-        # msgs = [(ct.NEW_DEVICE_INFO_RESPOND, json_device_info, 2, True),
-        #         (ct.NEW_DEVICE_TRUST_RATE, json.dumps(device_trust_rate), 2, True)]
-
         client.publish(ct.NEW_DEVICE_INFO_RESPOND, json_device_info, 2, True)
         client.publish(ct.NEW_DEVICE_TRUST_RATE, json.dumps(device_trust_rate), 2, True)
-
-        # client.publish.multiple(msgs)
 
     except ConnectionError:
         logging.error(ConnectionError, "Error send_device_info()")

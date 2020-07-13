@@ -5,7 +5,6 @@ import sys
 
 """
 TO DO
-1. Fix too much sending dev info -> Delete sending trust_rate -> merge!!
 2. What if another 2 devices have trust rate 1stone is miner -> send appropriate message or get info from broker
 3. Perform a healthcheck every x minutes
 4. Give trust point for good validation and take away when wrong validation ->each own 

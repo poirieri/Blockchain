@@ -8,7 +8,7 @@ from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
 import Blockchain.helpers.common_topics as ct
 
-MINIMUM_TRANSACTIONS = 3
+MINIMUM_TRANSACTIONS = 4
 MINIMUM_NODES = 6
 
 
@@ -24,34 +24,28 @@ def add_new_block(client, userdata, message):
                             "transactions": [list],
                             "time": str(datetime.datetime.utcnow())
                             """
-
-    received_block = json.loads(message.payload)
-    timestamp = received_block.pop("time")
-    try:
+    if not gl.is_miner:
+        received_block = json.loads(message.payload)
+        timestamp = received_block.pop("time")
         computed_block = []
-        if gl.block_chain.blocks.__len__() == 0:
-            computed_block = Block.Chain.get_first_block(timestamp,
-                                                         received_block)
-            gl.block_chain.blocks.append(computed_block)
-        else:
-            gl.block_chain.add_block(timestamp,
-                                     received_block)
-            computed_block = gl.block_chain.blocks[-1]
-        logging.debug("New block mined!\n")
-        if gl.is_miner:  # to be commented
-            add_to_db(computed_block)
-            utils.choose_new_miner(client)
-        count = len(computed_block.data)
-        for i in range (0, count):
-            try:
-                gl.temporary_blocks.remove(computed_block.data[str(i)])
-            except KeyError:
-                pass
-            except ValueError:
-                pass
+        try:
+            if gl.block_chain.blocks.__len__() == 0 and not gl.is_miner:
+                computed_block = Block.Chain.get_first_block(timestamp,
+                                                             received_block)
+                gl.block_chain.blocks.append(computed_block)
+            elif gl.block_chain.blocks.__len__() != 0 and not gl.is_miner:
+                gl.block_chain.add_block(timestamp,
+                                         received_block)
+                computed_block = gl.block_chain.blocks[-1]
+            logging.debug("New block mined!\n")
+
+        except KeyError:
+            logging.error("Error in add_new_block()")
+        for i in computed_block.data:
+            gl.temporary_blocks = list(filter(lambda x: json.loads(x['transactions']) != computed_block.data[i]['transactions'],
+                       gl.temporary_blocks))
         del computed_block
-    except KeyError:
-        logging.error("Error in add_new_block()")
+    gl.is_mining = False
 
 
 def receive_and_send_encrypted_block(client, userdata, message):
@@ -71,7 +65,27 @@ def receive_and_send_encrypted_block(client, userdata, message):
     if gl.temporary_blocks.__len__() >= MINIMUM_TRANSACTIONS and gl.is_miner:
         try:
             validated_block = utils.validate_blocks(client, gl.temporary_blocks)
-            client.publish(ct.NEW_BLOCK, json.dumps(validated_block), qos=2)
+            if gl.is_miner:  # to be commented
+                comp_block = validated_block.copy()
+                timestamp = comp_block.pop('time')
+                for i in comp_block:
+                    comp_block[i]['transactions'] = json.loads(comp_block[i]['transactions'])
+                try:
+                    computed_block = []
+                    if gl.block_chain.blocks.__len__() == 0:
+                        computed_block = Block.Chain.get_first_block(timestamp,
+                                                                     comp_block)
+                        gl.block_chain.blocks.append(computed_block)
+                    else:
+                        gl.block_chain.add_block(timestamp,
+                                                 comp_block)
+                        computed_block = gl.block_chain.blocks[-1]
+                    logging.debug("New block mined!\n")
+                except KeyError:
+                    logging.error("Error in add_new_block()")
+                add_to_db(computed_block)
+                client.publish(ct.NEW_BLOCK, json.dumps(validated_block), qos=2)
+                utils.choose_new_miner(client)
         except KeyError:
             logging.debug("Error in receive_encrypted_block()")
 
@@ -185,7 +199,7 @@ def receive_and_send_trust_rate(client, userdata, message):
         logging.debug("Current trust list: " + str(gl.trusted_devices))
 
         own_trust_rate = {
-            userdata.get("id_device"): int(gl.trusted_devices.get(userdata.get("id_device")))
+            userdata.get("id_device"): gl.trusted_devices.get(userdata.get("id_device"))
         }
         client.publish(ct.RESPOND_WITH_OWN_TRUST_RATE, json.dumps(own_trust_rate), qos=2)
         if gl.trusted_devices.__len__() >= MINIMUM_NODES and gl.list_devices.__len__() >= MINIMUM_NODES and gl.is_miner:

@@ -1,5 +1,6 @@
+import json
 import logging
-
+import Blockchain.global_variables as gl
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 
@@ -26,11 +27,15 @@ def add_to_db(mined_block):
     :return:
     """
     db = connect_to_db()
+    # for i in mined_block.data:
+    #     mined_block.data[i]['transactions'] = json.loads(mined_block.data[i]['transactions'])
     copy_object = {
         'index': mined_block.index,
         'timestamp': mined_block.timestamp,
         'data': list(mined_block.data.values()),
         'previous hash': mined_block.previous_hash,
-        'hash': mined_block.hash
+        'hash': mined_block.hash,
+        'miner': gl.id_device
     }
     db.insert_one(copy_object)
+    print("inserted")
