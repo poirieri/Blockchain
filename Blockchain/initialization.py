@@ -1,7 +1,6 @@
 import json
 import logging
 import paho.mqtt.client as mqtt
-import paho.mqtt.publish as publish
 import Blockchain.helpers.utils as utils
 import Blockchain.global_variables as gl
 import Blockchain.helpers.common_topics as ct
@@ -15,7 +14,7 @@ class DeviceInfo:
         self.public_key_n = public_key_n
 
     def __repr__(self) -> str:
-        return "ID: " + self.id + ",se mac address: " + self.mac_address + " ;"
+        return "{ID: " + self.id + ", MAC address: " + self.mac_address + "}"
 
 
 def connect_client(id_device, mac_address, keys):
@@ -28,8 +27,6 @@ def connect_client(id_device, mac_address, keys):
     client.will_set(ct.DEVICE_OFFLINE, payload=id_device, qos=0, retain=True)
     client.on_message = utils.on_message
     client.connect(gl.host, gl.port, keepalive=60)
-    # while client.is_connected() is False:
-    # logging.debug("not connected")
     return client
 
 
@@ -51,6 +48,3 @@ def send_device_info(client, keys, device_id, mac_address, trust_rate):
 
     except ConnectionError:
         logging.error(ConnectionError, "Error send_device_info()")
-
-
-

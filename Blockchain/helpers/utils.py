@@ -15,7 +15,7 @@ def on_connect(client, userdata, flags, rc):
     """ Subscribing in on_connect() means that if we lose the connection and
     reconnect then subscriptions will be renewed.
     """
-    logging.debug("Connected with result code "+str(rc))
+    logging.info("Connected with result code "+str(rc))
     if rc == 0:
         subscribe_topics(client)
         add_callbacks(client)
@@ -23,19 +23,17 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     """ The callback for when a PUBLISH message is received from the server."""
-    print(msg.topic+" "+str(msg.payload))
+    logging.info(msg.topic)
     if msg.retain == 1:
-        print("This is a retained message")
+        logging.debug("This is a retained message")
     if msg.topic == ct.START_COLLECTING and not gl.is_miner and not gl.is_mining:
         gl.is_mining = True
-        time.sleep(randint(5, 10))
+        time.sleep(randint(5, 15))
         data_to_send = data_collector.prepare_transactions_block(client,
                                                                  userdata.get("priv_key"),
                                                                  userdata.get("id_device"),
                                                                  userdata.get("mac_address"))
         send_block(client, json.dumps(data_to_send))
-        # gl.is_mining = False
-
 
 
 def subscribe_topics(client):
@@ -68,14 +66,16 @@ def add_callbacks(client):
 def choose_new_miner(client):
     try:
         could_be_miner = dict(filter(lambda elem: int(elem[1]) >= MINIMUM_TRUST_VALUE, gl.trusted_devices.items()))
-        logging.debug("Devices suitable for mining blocks:" + str(could_be_miner))
+        if could_be_miner.__len__() > 1:
+            could_be_miner = dict(filter(lambda elem: str(elem[0]) != str(gl.id_device), could_be_miner.items()))
+            logging.debug("Devices suitable for mining blocks:" + str(could_be_miner))
         new_miner = random.choice(list(could_be_miner.keys()))
-        logging.debug("Device chosen to mine next block: " + str(new_miner))
+        logging.info("Device chosen to mine next block: " + str(new_miner))
         client.publish(ct.CHOOSE_MINER, new_miner, qos=2)
     except KeyError:
         pass
     except IndexError:
-        logging.error("choose_new_miner() not having anyone who can candidate")
+        logging.error("choose_new_miner() - not having anyone who can mine next block")
         new_miner = gl.id_device
         client.publish(ct.CHOOSE_MINER, new_miner, qos=2)
 
@@ -85,7 +85,7 @@ def update_list_devices(new_device_info):
         gl.list_devices.append(
             initialization.DeviceInfo(new_device_info['id'], new_device_info['mac_address'],
                                       new_device_info['public_key_e'], new_device_info['public_key_n']))
-        logging.debug("List device updated: " + str(new_device_info))
+        logging.info("List device updated: " + str(new_device_info['id']))
 
 
 def find_device_public_key(id_device):
@@ -93,7 +93,7 @@ def find_device_public_key(id_device):
         filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
         return PublicKey(filter_obj[0].public_key_n, filter_obj[0].public_key_e)
     except IndexError:
-        logging.debug("Index out of range - find_device_public_key()")
+        logging.error("find_device_public_key() - Index out of range")
 
 
 def find_mac_address(id_device):
@@ -101,7 +101,7 @@ def find_mac_address(id_device):
         filter_obj = list(filter(lambda x: x.id == id_device, gl.list_devices))
         return filter_obj[0].mac_address
     except IndexError:
-        logging.debug("Index out of range - find_mac_address()")
+        logging.error("find_mac_address() - Index out of range")
 
 
 def validate_blocks(client, validated_blocks):
@@ -118,12 +118,12 @@ def validate_blocks(client, validated_blocks):
                 client.publish(ct.CORRECT_VALIDATION, i['id'], qos=2)
             else:
                 client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
-                logging.debug("fake block: " + i['id'])
+                logging.debug("Fake block: " + i['id'])
         except KeyError:
             client.publish(ct.FALSE_VALIDATION, i['id'], qos=2)
-            logging.debug("fake signature: " + i['id'])
+            logging.error("Fake signature: " + i['id'])
         except AttributeError:
-            logging.debug("Error  no public key- verify", i)
+            logging.error("validate_blocks() - No public key", i)
             client.publish(ct.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     validated_blocks.clear()
     new_block.update({"time": str(datetime.datetime.now())[:19]})
@@ -132,7 +132,7 @@ def validate_blocks(client, validated_blocks):
 
 def send_block(client, block):
     try:
-        logging.debug("data send - send_block()")
         client.publish(ct.SEND_ENCRYPTED_MESSAGE, block)
+        logging.debug("Data package send")
     except ConnectionError:
-        logging.error(ConnectionError, "Error send_block")
+        logging.error(ConnectionError, "Error send_block()")

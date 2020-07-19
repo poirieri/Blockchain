@@ -12,9 +12,9 @@ def connect_to_db():
     try:
         conn = MongoClient()
         # conn = MongoClient("192.168.0.206", 27017)
-        logging.debug("DB: Connected successfully!!!")
+        logging.debug("Connection with database established")
     except ConnectionFailure:
-        logging.debug("Could not connect to MongoDB")
+        logging.error("Could not connect to MongoDB")
 
     db = conn.database   # database
     collection = db.blockchain    # Created or Switched to collection
@@ -26,9 +26,6 @@ def add_to_db(mined_block):
     :param mined_block: set of validated blocks from different devices with hash values
     :return:
     """
-    db = connect_to_db()
-    # for i in mined_block.data:
-    #     mined_block.data[i]['transactions'] = json.loads(mined_block.data[i]['transactions'])
     copy_object = {
         'index': mined_block.index,
         'timestamp': mined_block.timestamp,
@@ -37,5 +34,5 @@ def add_to_db(mined_block):
         'hash': mined_block.hash,
         'miner': gl.id_device
     }
-    db.insert_one(copy_object)
-    print("inserted")
+    gl.database.insert_one(copy_object)
+    logging.info("New block inserted to database collection")

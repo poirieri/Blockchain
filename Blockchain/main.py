@@ -2,20 +2,15 @@ from Blockchain import initialization
 import Blockchain.global_variables as gl
 import logging
 import sys
-
-"""
-TO DO
-2. What if another 2 devices have trust rate 1stone is miner -> send appropriate message or get info from broker
-3. Perform a healthcheck every x minutes
-4. Give trust point for good validation and take away when wrong validation ->each own 
-"""
+import Blockchain.dbconf as db
 
 
 def main():
     if gl.is_debug == "DEBUG":
         logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
-    logging.debug("ID device: " + gl.id_device)
+    logging.info("ID device: " + gl.id_device)
     client = initialization.connect_client(gl.id_device, gl.mac_address, gl.keys)
+    gl.database = db.connect_to_db()
     initialization.send_device_info(client, gl.keys, gl.id_device, gl.mac_address, gl.trust_rate)
     client.loop_forever()
 

@@ -37,7 +37,7 @@ def add_new_block(client, userdata, message):
                 gl.block_chain.add_block(timestamp,
                                          received_block)
                 computed_block = gl.block_chain.blocks[-1]
-            logging.debug("New block mined!\n")
+            logging.info("New block mined!\n")
 
         except KeyError:
             logging.error("Error in add_new_block()")
@@ -46,6 +46,8 @@ def add_new_block(client, userdata, message):
                        gl.temporary_blocks))
         del computed_block
     gl.is_mining = False
+    if gl.is_miner:
+        utils.choose_new_miner(client)
 
 
 def receive_and_send_encrypted_block(client, userdata, message):
@@ -80,12 +82,11 @@ def receive_and_send_encrypted_block(client, userdata, message):
                         gl.block_chain.add_block(timestamp,
                                                  comp_block)
                         computed_block = gl.block_chain.blocks[-1]
-                    logging.debug("New block mined!\n")
+                    logging.info("New block mined!\n")
                 except KeyError:
                     logging.error("Error in add_new_block()")
                 add_to_db(computed_block)
                 client.publish(ct.NEW_BLOCK, json.dumps(validated_block), qos=2)
-                utils.choose_new_miner(client)
         except KeyError:
             logging.debug("Error in receive_encrypted_block()")
 
@@ -113,7 +114,7 @@ def increment_trust_value(client, userdata, message):
         trust_value = 20 if (gl.trusted_devices.get(id_good_device) + 1) >= 20 else \
             (gl.trusted_devices.get(id_good_device) + 1)
         gl.trusted_devices.update({id_good_device: trust_value})
-        logging.debug("Trust rate updated: " + str({id_good_device: trust_value}))
+        logging.info("Trust rate updated: " + str({id_good_device: trust_value}))
     except TypeError:
         logging.error("Error in add_trust_value()")
 
@@ -128,7 +129,7 @@ def decrement_trust_value(client, userdata, message):
         trust_value = 0 if (gl.trusted_devices.get(id_bad_device) - 2) < 0 else \
             (gl.trusted_devices.get(id_bad_device) - 2)
         gl.trusted_devices.update({id_bad_device: trust_value})
-        logging.debug("Trust rate updated: " + str({id_bad_device: trust_value}))
+        logging.info("Trust rate updated: " + str({id_bad_device: trust_value}))
     except TypeError:
         logging.error("Error in decrement_trust_value()")
 
@@ -141,7 +142,7 @@ def new_miner_status(client, userdata, message):
         gl.is_miner = True if str(message.payload, "UTF-8") == userdata.get("id_device") else False
         if gl.trusted_devices.__len__() >= MINIMUM_NODES and gl.list_devices.__len__() >= MINIMUM_NODES and gl.is_miner:
             client.publish(ct.START_COLLECTING, qos=2)
-            print("new miner chosen")
+            logging.info("Start collecting data for new block - miner")
     except KeyError:
         logging.debug("Error in new_miner_status()")
 
@@ -179,11 +180,11 @@ def receive_and_send_device_info(client, userdata, message):
         received_device_info = json.loads(message.payload)
         if received_device_info['id'] != userdata.get('id_device'):
             utils.update_list_devices(received_device_info)
-            logging.debug("Updated device list with: " + received_device_info.__repr__())
+            logging.info("Updated device list with: " + received_device_info.__repr__() + "\n")
             logging.debug("Updated device list: " + str(gl.list_devices))
             client.publish(ct.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     except KeyError:
-        logging.error("Error in receive_and_send_device_info()")
+        logging.error("receive_and_send_device_info() - Error")
 
 
 def receive_and_send_trust_rate(client, userdata, message):
@@ -195,7 +196,7 @@ def receive_and_send_trust_rate(client, userdata, message):
     received_trust_rate = json.loads(message.payload)
     try:
         gl.trusted_devices.update(received_trust_rate)
-        logging.debug("Updated trust list with: " + str(received_trust_rate))
+        logging.info("Updated trust list with: " + str(received_trust_rate) + "\n")
         logging.debug("Current trust list: " + str(gl.trusted_devices))
 
         own_trust_rate = {
@@ -217,8 +218,8 @@ def delete_device(client, userdata, message):
     try:
         gl.list_devices = list(filter(lambda x: x.id != inactive_device_id, gl.list_devices))
         gl.trusted_devices.pop(inactive_device_id)
-        logging.debug("Device inactive: " + inactive_device_id.__str__())
+        logging.info("Device inactive: " + inactive_device_id.__str__() + "\n")
         logging.debug("Devices active: " + str(gl.list_devices) + "\n" +
                       "Trust list" + str(gl.trusted_devices))
     except KeyError:
-        logging.debug("Error in delete_device() - no device detected")
+        logging.error("Error in delete_device() - no device detected")

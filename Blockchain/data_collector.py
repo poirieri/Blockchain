@@ -19,13 +19,15 @@ async def transaction():
     elif gl.sensor == 2:
         y = str(randint(4, 5))
         x = "24," + y
-        gl.transactions = {"Name": "Temperatura",
+        gl.transactions = {"Name": "Temperatura 1",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
     elif gl.sensor == 3:
-        gl.transactions = {"Name": "Stan baterii",
-                            "Date": str(datetime.datetime.now())[:19],
-                            "Value": str(psutil.sensors_battery().percent)}
+        y = str(randint(8, 9))
+        x = "18," + y
+        gl.transactions = {"Name": "Temperatura 2",
+                                "Date": str(datetime.datetime.now())[:19],
+                                "Value": str(x)}
     elif gl.sensor == 4:
         x = 1023
         gl.transactions = {"Name": "Ciśnienie",
