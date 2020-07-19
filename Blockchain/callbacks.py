@@ -8,8 +8,8 @@ from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
 import Blockchain.helpers.common_topics as ct
 
-MINIMUM_TRANSACTIONS = 4
-MINIMUM_NODES = 6
+MINIMUM_TRANSACTIONS = 5
+MINIMUM_NODES = 9
 
 
 def add_new_block(client, userdata, message):
@@ -180,8 +180,8 @@ def receive_and_send_device_info(client, userdata, message):
         received_device_info = json.loads(message.payload)
         if received_device_info['id'] != userdata.get('id_device'):
             utils.update_list_devices(received_device_info)
-            logging.info("Updated device list with: " + received_device_info.__repr__() + "\n")
-            logging.debug("Updated device list: " + str(gl.list_devices))
+            # logging.info("Updated device list with: " + received_device_info.__repr__() + "\n")
+            logging.debug("Device list: " + str(gl.list_devices))
             client.publish(ct.NEW_DEVICE_INFO, json.dumps(gl.list_devices[0].__dict__))
     except KeyError:
         logging.error("receive_and_send_device_info() - Error")

@@ -15,7 +15,7 @@ def on_connect(client, userdata, flags, rc):
     """ Subscribing in on_connect() means that if we lose the connection and
     reconnect then subscriptions will be renewed.
     """
-    logging.info("Connected with result code "+str(rc))
+    logging.debug("Connected with result code "+str(rc))
     if rc == 0:
         subscribe_topics(client)
         add_callbacks(client)

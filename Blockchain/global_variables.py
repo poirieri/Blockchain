@@ -15,8 +15,10 @@ is_miner = int(sys.argv[1])
 is_debug = "DEBUG"
 sensor = int(sys.argv[2])
 # host = "192.168.0.206"
-host = "localhost"
-port = 1883
+# host = "localhost"
+host = str(sys.argv[3])
+# port = 1883
+port = int(sys.argv[4])
 mac_address = hex(uuid.getnode())
 if is_miner == 1:
     trust_rate = 10
