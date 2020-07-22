@@ -15,16 +15,16 @@ async def transaction():
     if gl.sensor == 1:
         gl.transactions = {"Name": "Stan baterii",
                                 "Date": str(datetime.datetime.now())[:19],
-                                "Value": str(psutil.sensors_battery().percent)}
+                                "Value": str(99)}
     elif gl.sensor == 2:
         y = str(randint(4, 5))
-        x = "24," + y
+        x = "24." + y
         gl.transactions = {"Name": "Temperatura 1",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
     elif gl.sensor == 3:
         y = str(randint(8, 9))
-        x = "18," + y
+        x = "18." + y
         gl.transactions = {"Name": "Temperatura 2",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
@@ -58,12 +58,17 @@ async def transaction():
         gl.transactions = {"Name": "PM 10",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
+    else:
+        x = 6
+        gl.transactions = {"Name": "PM 10",
+                           "Date": str(datetime.datetime.now())[:19],
+                           "Value": str(x)}
+
 
 
 async def gather_transactions(client):
     """Gather transactions in transaction list."""
     return await asyncio.gather(transaction())
-
 
 def prepare_transactions_block(client, private_key, id_device, mac_address):
     """Prepare transaction block containing id, mac_address, signature and set of transactions.
