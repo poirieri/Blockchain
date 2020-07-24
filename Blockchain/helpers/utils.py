@@ -28,7 +28,6 @@ def on_message(client, userdata, msg):
         logging.debug("This is a retained message")
     if msg.topic == ct.START_COLLECTING and not gl.is_miner and not gl.is_mining:
         gl.is_mining = True
-        time.sleep(randint(5, 15))
         data_to_send = data_collector.prepare_transactions_block(client,
                                                                  userdata.get("priv_key"),
                                                                  userdata.get("id_device"),

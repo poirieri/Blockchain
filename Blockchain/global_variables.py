@@ -31,3 +31,4 @@ id_device = str(randint(0, 100000))
 keys = bs.configure_keys()
 is_mining = False
 database = None
+minimum_nodes = 6

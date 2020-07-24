@@ -8,8 +8,8 @@ from Blockchain.dbconf import add_to_db
 import Blockchain.global_variables as gl
 import Blockchain.helpers.common_topics as ct
 
-MINIMUM_TRANSACTIONS = 5
-MINIMUM_NODES = 9
+MINIMUM_TRANSACTIONS = int(gl.minimum_nodes/2)
+MINIMUM_NODES = gl.minimum_nodes
 
 
 def add_new_block(client, userdata, message):
