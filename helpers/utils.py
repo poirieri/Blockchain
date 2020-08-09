@@ -5,9 +5,9 @@ import random
 import time
 from random import randint
 from rsa import PublicKey
-from Blockchain import security, initialization, callbacks, data_collector
-import Blockchain.helpers.common_topics as ct
-import Blockchain.global_variables as gl
+import security, initialization, callbacks, data_collector
+import helpers.common_topics as ct
+import global_variables as gl
 MINIMUM_TRUST_VALUE = 10
 
 
@@ -15,7 +15,7 @@ def on_connect(client, userdata, flags, rc):
     """ Subscribing in on_connect() means that if we lose the connection and
     reconnect then subscriptions will be renewed.
     """
-    logging.debug("Connected with result code "+str(rc))
+    logging.info("Connected with result code "+str(rc))
     if rc == 0:
         subscribe_topics(client)
         add_callbacks(client)

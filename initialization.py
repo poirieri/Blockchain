@@ -1,9 +1,9 @@
 import json
 import logging
 import paho.mqtt.client as mqtt
-import Blockchain.helpers.utils as utils
-import Blockchain.global_variables as gl
-import Blockchain.helpers.common_topics as ct
+import helpers.utils as utils
+import global_variables as gl
+import helpers.common_topics as ct
 
 
 class DeviceInfo:
@@ -26,7 +26,7 @@ def connect_client(id_device, mac_address, keys):
     client.on_connect = utils.on_connect
     client.will_set(ct.DEVICE_OFFLINE, payload=id_device, qos=0, retain=True)
     client.on_message = utils.on_message
-    client.connect(gl.host, gl.port, keepalive=60)
+    client.connect(gl.host, gl.port, keepalive=600)
     return client
 
 

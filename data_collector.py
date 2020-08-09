@@ -5,28 +5,29 @@ from random import randint
 
 from bson import BSON
 
-from Blockchain import security
-import Blockchain.global_variables as gl
-import psutil
+import security
+import global_variables as gl
 import json
 
 
-async def transaction():
+def transaction():
     """Append transactions list."""
     if gl.sensor == 1:
-        time.sleep(randint(30, 60))
-        gl.transactions = {"Name": "Stan baterii",
-                                "Date": str(datetime.datetime.now())[:19],
-                                "Value": str(99)}
+        time.sleep(randint(30,60))
+        y = str(randint(8, 9))
+        x = "24." + y
+        gl.transactions = {"Name": "Temperatura 1",
+                           "Date": str(datetime.datetime.now())[:19],
+                           "Value": str(x)}
     elif gl.sensor == 2:
-        time.sleep(randint(5, 15))
+        time.sleep(randint(30, 60))
         y = str(randint(4, 5))
         x = "24." + y
         gl.transactions = {"Name": "Temperatura 1",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
     elif gl.sensor == 3:
-        time.sleep(randint(50, 60))
+        time.sleep(randint(30, 60))
         y = str(randint(8, 9))
         x = "18." + y
         gl.transactions = {"Name": "Temperatura 2",
@@ -45,41 +46,35 @@ async def transaction():
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
     elif gl.sensor == 6:
-        time.sleep(randint(60, 120))
+        time.sleep(randint(60, 100))
         x = 0
         gl.transactions = {"Name": "Śnieg",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
     elif gl.sensor == 7:
-        time.sleep(randint(60, 120))
+        time.sleep(randint(60, 100))
         x = 0
         gl.transactions = {"Name": "Deszcz",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
     elif gl.sensor == 8:
-        time.sleep(randint(100, 120))
+        time.sleep(randint(80, 100))
         x = 8
         gl.transactions = {"Name": "PM 2.5",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
     elif gl.sensor == 9:
-        time.sleep(randint(100, 120))
+        time.sleep(randint(80, 100))
         x = 6
         gl.transactions = {"Name": "PM 10",
                                 "Date": str(datetime.datetime.now())[:19],
                                 "Value": str(x)}
-    else:
-        x = 6
-        time.sleep(randint(100, 120))
-        gl.transactions = {"Name": "PM 10",
-                           "Date": str(datetime.datetime.now())[:19],
-                           "Value": str(x)}
 
 
-
-async def gather_transactions(client):
+def gather_transactions(client):
     """Gather transactions in transaction list."""
-    return await asyncio.gather(transaction())
+    transaction()
+
 
 def prepare_transactions_block(client, private_key, id_device, mac_address):
     """Prepare transaction block containing id, mac_address, signature and set of transactions.
@@ -89,7 +84,7 @@ def prepare_transactions_block(client, private_key, id_device, mac_address):
     :param mac_address:
     """
     gl.transactions.clear()
-    asyncio.run(gather_transactions(client))
+    gather_transactions(client)
     transaction = json.dumps(gl.transactions)
     signature = security.sign_message(transaction, private_key)
     data_set = {

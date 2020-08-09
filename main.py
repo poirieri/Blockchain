@@ -1,8 +1,8 @@
-from Blockchain import initialization
-import Blockchain.global_variables as gl
+import initialization
+import global_variables as gl
 import logging
 import sys
-import Blockchain.dbconf as db
+import dbconf as db
 
 
 def main():

@@ -2,11 +2,11 @@ import json
 import logging
 import time
 from bson import BSON
-import Blockchain.helpers.utils as utils
-from Blockchain import data_collector, Block
-from Blockchain.dbconf import add_to_db
-import Blockchain.global_variables as gl
-import Blockchain.helpers.common_topics as ct
+from helpers import utils
+import data_collector, Block
+from dbconf import add_to_db
+import global_variables as gl
+import helpers.common_topics as ct
 
 MINIMUM_TRANSACTIONS = int(gl.minimum_nodes/2)
 MINIMUM_NODES = gl.minimum_nodes

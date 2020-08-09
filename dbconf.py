@@ -1,6 +1,6 @@
 import json
 import logging
-import Blockchain.global_variables as gl
+import global_variables as gl
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 
@@ -10,8 +10,8 @@ def connect_to_db():
     :return: created collection
     """
     try:
-        conn = MongoClient()
-        # conn = MongoClient("192.168.0.206", 27017)
+        # conn = MongoClient()
+        conn = MongoClient(gl.host, 27017)
         logging.debug("Connection with database established")
     except ConnectionFailure:
         logging.error("Could not connect to MongoDB")

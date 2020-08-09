@@ -1,8 +1,8 @@
 import sys
 import uuid
 from random import randint
-from Blockchain import Block
-import Blockchain.security as bs
+import Block
+import security as bs
 
 id_device = None
 list_devices = []
@@ -31,4 +31,5 @@ id_device = str(randint(0, 100000))
 keys = bs.configure_keys()
 is_mining = False
 database = None
-minimum_nodes = 6
+minimum_nodes = 2
+database = None
